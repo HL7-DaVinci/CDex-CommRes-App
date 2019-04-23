@@ -140,16 +140,25 @@ if (!CDEX) {
 
             CDEX.client.api.fetchAll(
                 {type: "CommunicationRequest"}
-            ).then(function(communicationRequests, refs) {
+            ).then(function(communicationRequests) {
                 CDEX.communicationRequests = communicationRequests;
                 if(communicationRequests.length) {
-                    communicationRequests.forEach(function(communicationRequest, index){
+                    CDEX.communicationRequests.forEach(function(commReq, index){
                         let idName = "btnCommReq" + index;
+                        let description = "";
+                        if(commReq.text){
+                            if(commReq.text.div){
+                                description = commReq.text.div;
+                            }
+                        }
+
                         $('#communication-request-selection-list').append(
-                            "<tr> <td class='medtd'><button type='button' class='btn btn-secondary' id='" + idName +"' >" +
-                            communicationRequest.id + "</button></td><td>"+
-                            communicationRequest.authoredOn + "</td></tr>");
-                        $('#' + idName).click(() => {CDEX.openCommunicationRequest(communicationRequest.id)});
+                            "<tr><td class='medtd'>" + commReq.id + "</td><td class='medtd'>" + description +
+                            "</td><td class='medtd'>" + commReq.authoredOn +
+                            "</td><td class='medtd'><button type='button' class='btn btn-secondary' id='" + idName +
+                            "' >Select</button></td></tr>");
+
+                        $('#' + idName).click(() => {CDEX.openCommunicationRequest(commReq.id)});
                     });
                 }
             });
@@ -177,7 +186,7 @@ if (!CDEX) {
     };
 
     CDEX.loadConfig = () => {
-        let configText = window.localStorage.getItem("cdex-app-config");
+        let configText = window.localStorage.getItem("cdex-commres-app-config");
         if (configText) {
             let conf = JSON.parse (configText);
             if (conf['custom']) {
