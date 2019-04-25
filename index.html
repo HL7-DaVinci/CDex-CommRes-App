@@ -12,6 +12,10 @@
     <script src="js/config.js"></script>
 </head>
 <body>
+<div class="wine-row">
+    <img src="images/response.png" height="100" width="100">
+    <div class="wine-text-container"><h1>CDex Communication Fulfillment Application</h1></div>
+</div>
 <div id="communication-request-screen" class="screen">
     <h1>Communication Requests</h1>
 
@@ -22,6 +26,7 @@
             <tr>
                 <th>Request ID</th>
                 <th>Description</th>
+                <th>Sender</th>
                 <th>Created Date</th>
                 <th>Select</th>
             </tr>
@@ -34,48 +39,56 @@
     </div>
 </div>
 <div id="data-request-screen" class="screen">
-    <h1>Communication Request results for <span id="patient-name"></span></h1>
+    <h2>Communication Request results for <span id="patient-name"></span></h2>
     <div id="menu-request-list">
         <p><div class='dvt'>
         <table class='table'>
             <thead>
             <tr>
-                <th>FHIR Query String</th>
-                <th>Selected</th>
+                <th>Request</th>
             </tr>
             </thead>
-            <tbody id='selection-list'>
-            </tbody>
+            <tbody id='selection-list'></tbody>
         </table>
     </div>
         </p>
     </div>
     <button type="button" class="btn btn-primary" id="btn-review">Review data requests</button>
-
+</div>
+<div id="preview-screen" class="screen">
+    <table class='table'>
+        <thead>
+        </thead>
+        <tbody id='preview-list'></tbody>
+    </table>
+    <button type="button" class="btn btn-secondary" id="btn-back">Back</button>
 </div>
 <div id="review-screen" class="screen">
     <h1>Reconciled data requests for <span id="review-name"></span></h1>
+    <div class="card-body">
+        <h5 class="card-title">CDex Endpoint Configuration</h5>
+        <div id="card"></div>
+    </div>
     <div id="review-lists"><p><div class='dvt'>
         <table class='table alert-warning'>
             <thead>
             <tr>
-                <th>FHIR Query String</th>
+                <th>Request</th>
             </tr>
             </thead>
-            <tbody id='final-list'>
-
-            </tbody>
+            <tbody id='final-list'></tbody>
         </table>
     </div></p></div>
     <div>
         <button type="button" class="btn btn-secondary" id="btn-edit">Edit requests</button>
-        <button type="button" class="btn btn-primary" id="btn-submit">Submit reconciled query strings</button>
+        <button type="button" class="btn btn-primary" id="btn-submit">Submit requests</button>
     </div>
 </div>
 <div id="confirm-screen" class="card alert-info screen">
     <div class="card-body">
         <h5 class="card-title">Confirmation</h5>
-        <p class="card-text">Communication request sent to provider.</p>
+        <p class="card-text">Communication sent to payer.</p>
+        <p class="card-text">You can close this window now.</p>
     </div>
 </div>
 <div id="error-screen" class="card alert-danger screen">

@@ -4,22 +4,35 @@ if (!CDEX) {
 }
 
 (function () {
-
     CDEX.client = null;
     CDEX.communicationRequests = null;
     CDEX.communicationRequest = null;
+    CDEX.now = () => {
+        let date = new Date();
+        return date.toISOString();
+    };
 
     CDEX.displayPatient = (pt, screen) => {
         $('#' + screen).html(CDEX.getPatientName(pt));
+    };
+
+    CDEX.displayOrganization = (org, screen) => {
+        $('#' + screen).append("<table><tbody><tr><td>" + org.identifier[0].system + "</td><td>" +
+            org.identifier[0].value + "</td></tr></tbody></table>");
     };
 
     CDEX.displayScreen = (screenID) => {
         $('#data-request-screen').hide();
         $('#review-screen').hide();
         $('#confirm-screen').hide();
-        $('#config-screen').hide();
         $('#communication-request-screen').hide();
+        $('#preview-screen').hide();
         $('#'+screenID).show();
+    };
+
+    CDEX.displayPreviewScreen = () => {
+        $("#preview-list").empty();
+        CDEX.displayScreen('preview-screen');
     };
 
     CDEX.displayCommunicationRequestScreen = () => {
@@ -34,34 +47,91 @@ if (!CDEX) {
         CDEX.displayScreen('confirm-screen');
     };
 
-    CDEX.displayConfigScreen = () => {
-        if (CDEX.configSetting === "custom") {
-            $('#config-select').val("custom");
-        } else {
-            $('#config-select').val(CDEX.configSetting);
-        }
-        $('#config-text').val(JSON.stringify(CDEX.providerEndpoint, null, 2));
-        CDEX.displayScreen('config-screen');
-    };
-
     CDEX.displayReviewScreen = () => {
-        $("#final-list").empty();
-        let checkboxes = $('#selection-list input[type=checkbox]');
-        let checkedRequests = [];
-        for (let i = 0; i < checkboxes.length; i++) {
-            if(checkboxes[i].checked == true){
-                checkedRequests.push(checkboxes[i].id);
+        $("card").empty();
+        let sender = CDEX.communicationRequest.sender.reference.split("/");
+        CDEX.client.api.fetchAll(
+            {
+                type: "Organization",
+                query: {
+                    _id: sender[1]
+                }
             }
-        }
-
-        var queries = CDEX.communicationRequest.payload[0].contentString.split(" ;");
-        for(let i = 0; i < queries.length; i++){
-            if(checkedRequests.includes(queries[i])) {
+        ).then(function (organization) {
+            CDEX.displayOrganization(organization[0], "card");
+        });
+        CDEX.client.api.fetchAll(
+            {
+                type: "Patient",
+                query: {
+                    _id: CDEX.communicationRequest.subject.reference
+                }
+            },
+            ["Patient.patientReference"]
+        ).then(function (patients) {
+            CDEX.displayPatient(patients[0], "review-name");
+        });
+        if (CDEX.communicationRequest.payload) {
+            CDEX.communicationRequest.payload.forEach(function (content, index) {
                 $('#final-list').append(
-                    "<tr> <td class='medtd'>" + queries[i] + "</td></tr>");
-            }
-        }
+                    "<tr> <td class='medtd'>" + content.contentString +
+                    "</td></tr><tr><td><table><tbody id='finalPayload" + index + "'></tbody></table></td></tr>");
+                if (CDEX.communicationRequest.payload[index].extension) {
+                    if (CDEX.communicationRequest.payload[index].extension[0].valueString) {
+                        let promise;
+                        let config = {
+                            type: 'GET',
+                            url: CDEX.providerEndpoint.url + "/" + CDEX.communicationRequest.payload[index].extension[0].valueString
+                        };
 
+                        promise = $.ajax(config);
+                        promise.then((results) => {
+                            if (results) {
+                                if(results.total == 0){
+                                    $('#finalPayload' + index).append("<tr><td>No matching data</td></tr>");
+                                }else {
+                                    if(results.entry) {
+                                        results.entry.forEach(function (result) {
+                                            if(result.resource.text){
+                                                $('#finalPayload' + index).append("<tr><td>" + result.resource.text.div + "</td></tr>");
+                                            }else {
+                                                $('#finalPayload' + index).append("<tr><td><pre>" + JSON.stringify(result.resource, null, '\t') + "</pre></td></tr>");
+                                            }
+                                        });
+                                    }else{
+                                        if(results.text){
+                                            $('#finalPayload' + index).append("<tr><td>" + results.text.div + "</td></tr>");
+                                        }else{
+                                            $('#finalPayload' + index).append("<tr><td><pre>" + JSON.stringify(results, null, '\t') + "</pre></td></tr>");
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    } else if (CDEX.communicationRequest.payload[index].extension[0].valueCodeableConcept) {
+                        CDEX.client.api.fetchAll(
+                            {
+                                type: "DocumentReference",
+                                query: {
+                                    type: CDEX.communicationRequest.payload[index].extension[0].valueCodeableConcept.coding[0].code
+                                }
+                            }
+                        ).then(function (documentReferences) {
+                            if (documentReferences.length) {
+                                documentReferences.forEach(function (docRef) {
+                                    $('#finalPayload' + index).append("<tr><td>" + docRef.id +
+                                        "</td><td>" + docRef.author[0].display + "</td><td>" +
+                                        docRef.subject.reference + "</td><td>" + docRef.category[0].text +
+                                        "</td></tr>");
+                                });
+                            } else {
+                                $('#finalPayload' + index).append("<tr><td>No " + content.contentString + " available</td></tr>");
+                            }
+                        });
+                    }
+                }
+            });
+        }
         CDEX.displayScreen('review-screen');
     }
 
@@ -89,8 +159,7 @@ if (!CDEX) {
         CDEX.communicationRequests.forEach(function(communicationRequest) {
             if(communicationRequest.id === commRequestId) {
                 CDEX.communicationRequest = communicationRequest;
-
-                CDEX.client.api.fetchAll(
+                 CDEX.client.api.fetchAll(
                     {type: "Patient",
                         query: {
                             _id: communicationRequest.subject.reference
@@ -100,38 +169,189 @@ if (!CDEX) {
                 ).then(function(patients) {
                     CDEX.displayPatient(patients[0], "patient-name");
                 });
+                if(communicationRequest.payload){
+                    communicationRequest.payload.forEach(function (content, index) {
+                        $('#selection-list').append(
+                            "<tr> <td class='medtd'>" + content.contentString +
+                            "</td></tr>" + "<tr><td><table><tbody id='payload" + index + "'></tbody></table></td></tr>");
+                        if(communicationRequest.payload[index].extension) {
+                            if (communicationRequest.payload[index].extension[0].valueString) {
+                                let promise;
+                                let config = {
+                                    type: 'GET',
+                                    url: CDEX.providerEndpoint.url + "/" + communicationRequest.payload[index].extension[0].valueString
+                                };
 
-                if (communicationRequest.payload[0].contentString) {
-                    let queries = communicationRequest.payload[0].contentString.split(" ;");
-                    queries.forEach(function (FHIRQuery) {
-                        if(FHIRQuery !== "") {
-                            let queryParams = FHIRQuery.split("?");
-                            $('#selection-list').append(
-                                "<tr class='alert-warning'> <td class='medtd'>" +FHIRQuery  +
-                                "</td><td> <input type=\"checkbox\" id=" + FHIRQuery + " checked=\"checked\"></td></tr>");
-                            CDEX.client.api.fetchAll(
-                                {
-                                    type: queryParams[0],
-                                    query: queryParams[1]
-
-                                }
-                            ).then(function (results) {
-                                results.forEach(function (result){
-                                    var text = "";
-                                    if(result.text){
-                                        text = result.text;
+                                promise = $.ajax(config);
+                                promise.then((results) => {
+                                    if (results) {
+                                        if(results.total == 0){
+                                            $('#payload' + index).append("<tr><td>No matching data</td></tr>");
+                                        }else {
+                                            if(results.entry) {
+                                                results.entry.forEach(function (result) {
+                                                    if(result.resource.text){
+                                                        $('#payload' + index).append("<tr><td>" + result.resource.text.div + "</td></tr>");
+                                                    }else {
+                                                        $('#payload' + index).append("<tr><td><pre>" + JSON.stringify(result.resource, null, '\t') + "</pre></td></tr>");
+                                                    }
+                                                });
+                                            }else{
+                                                if(results.text){
+                                                    $('#payload' + index).append("<tr><td>" + results.text.div + "</td></tr>");
+                                                }else{
+                                                $('#payload' + index).append("<tr><td><pre>" + JSON.stringify(results, null, '\t') + "</pre></td></tr>");
+                                                }
+                                            }
+                                        }
                                     }
-                                    $('#selection-list').append(
-                                            "<tr> <td class='medtd'>" + result.id + "</td><td>" +
-                                        text + "</td></tr>");
                                 });
-                            });
+                            }else if(communicationRequest.payload[index].extension[0].valueCodeableConcept){
+                                CDEX.client.api.fetchAllWithReferences(
+                                    {type: "DocumentReference",
+                                        query: {
+                                            type: communicationRequest.payload[index].extension[0].valueCodeableConcept.coding[0].code
+                                        }
+                                    }
+                                ).then(function(documentReferences) {
+                                    if(documentReferences.data.entry){
+                                        let d = documentReferences.data.entry;
+                                        d.forEach(function (docRef, docRefIndex) {
+                                            let idButton = "previewId" + docRefIndex;
+                                            $('#payload' + index).append("<tr><td>" + docRef.resource.id +
+                                                "</td><td>" + docRef.resource.author[0].display + "</td><td>" +
+                                                docRef.resource.subject.reference + "</td><td>" + docRef.resource.category[0].text +
+                                                "</td><td><button type='button' class='btn btn-secondary' id='" + idButton +
+                                                "'>Preview</button></td></tr>");
+                                            $('#' + idButton).click(() => {
+                                                CDEX.openPreview(docRef.resource)
+                                            });
+                                        });
+                                    }else{
+                                        $('#payload' + index).append("<tr><td>No " + content.contentString + " available</td></tr>");
+                                    }
+                                });
+                            }
                         }
                     });
                 }
             }
         });
+    };
+
+    CDEX.openPreview = (docRef) => {
+        CDEX.displayPreviewScreen();
+        if(docRef.content[0].attachment.contentType === "application/pdf"){
+            if(docRef.content[0].attachment.url){
+                let promiseBinary;
+                let config = {
+                    type: 'GET',
+                    url: CDEX.providerEndpoint.url + docRef.content[0].attachment.url
+                };
+
+                promiseBinary = $.ajax(config);
+                promiseBinary.then((binary) => {
+                    console.log(binary);
+
+                    $('#preview-list').append("<p></p>");
+                });
+            }else if(docRef.content[0].attachment.data){
+
+            }
+            console.log(docRef.content[0].attachment.data);
+        }else if(docRef.content[0].attachment.contentType === "application/hl7-v3+xml"){
+            let promiseBinary;
+            let config = {
+                type: 'GET',
+                url: CDEX.providerEndpoint.url + docRef.content[0].attachment.url
+            };
+
+            promiseBinary = $.ajax(config);
+            promiseBinary.then((binary) => {
+                console.log(binary);
+            });
+        }else if(docRef.content[0].attachment.contentType === "application/fhir+xml"){
+            let promiseBundle;
+            let config = {
+                type: 'GET',
+                url: CDEX.providerEndpoint.url + docRef.content[0].attachment.url
+            };
+
+            promiseBundle = $.ajax(config);
+            promiseBundle.then((bundles) => {
+                console.log(bundles);
+                let bundle = bundles.entry;
+                bundle.forEach(function (content) {
+                    if (content.resource.text) {
+                        $('#preview-list').append("<tr><td>" + content.resource.text.div + "</td></tr>");
+                    }
+                });
+            });
+        }
     }
+
+    CDEX.addToPayload = () => {
+        let timestamp = CDEX.now();
+        let communication = CDEX.operationPayload;
+        communication.authoredOn = timestamp;
+        communication.basedOn[0].reference = CDEX.communicationRequest.id;
+        let payload = [];
+
+        let checkboxes = $('#selection-list input[type=checkbox]');
+        let checkedRequests = [];
+        for (let i = 0; i < checkboxes.length; i++) {
+            if (checkboxes[i].checked == true) {
+                checkedRequests.push(checkboxes[i].id);
+            }
+        }
+
+        if (CDEX.communicationRequest.payload) {
+            let idx = 0;
+            CDEX.communicationRequest.payload.forEach(function (content, index) {
+                if (checkedRequests.includes("Resource" + index)) {
+                    if (CDEX.communicationRequest.payload[index].extension) {
+                        if (CDEX.communicationRequest.payload[index].extension[0].valueString) {
+                            let promise;
+                            let config = {
+                                type: 'GET',
+                                url: CDEX.providerEndpoint.url + "/" + CDEX.communicationRequest.payload[index].extension[0].valueString
+                            };
+                            let data = "";
+                            promise = $.ajax(config);
+                            promise.then((results) => {
+                                if (results) {
+                                    data = results.link.url;
+                                }
+                            });
+                            payload[idx] = {
+                                "extension": [
+                                    {
+                                        "url": "http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string",
+                                        "valueString": "VALUESTRING"
+                                    }
+                                ],
+                                "contentAttachment": {
+                                    "contentType": "application/fhir+xml",
+                                    "data": "DATA"
+                                }
+                            }
+                            payload[idx].extension[0].valueString = CDEX.communicationRequest.payload[index].extension[0].valueString;
+                            payload[idx].contentAttachment.data = data;
+
+
+                        }else if(CDEX.communicationRequest.payload[index].extension[0].valueCodeableConcept){
+
+                        }
+                    }else{
+
+                    }
+                    idx ++;
+                }
+            });
+        }
+        communication.payload = payload;
+        CDEX.operationPayload = communication;
+    };
 
     CDEX.loadData = (client) => {
         try {
@@ -139,26 +359,48 @@ if (!CDEX) {
             CDEX.displayCommunicationRequestScreen();
 
             CDEX.client.api.fetchAll(
-                {type: "CommunicationRequest"}
+                {type: "CommunicationRequest"
+                }
             ).then(function(communicationRequests) {
                 CDEX.communicationRequests = communicationRequests;
                 if(communicationRequests.length) {
                     CDEX.communicationRequests.forEach(function(commReq, index){
-                        let idName = "btnCommReq" + index;
-                        let description = "";
-                        if(commReq.text){
-                            if(commReq.text.div){
-                                description = commReq.text.div;
+                        if(commReq.sender) {
+                            let organization = commReq.sender.reference.split("/");
+                            CDEX.client.api.fetchAll(
+                                {
+                                    type: "Organization",
+                                    query: {
+                                        _id: organization[1]
+                                    }
+                                },
+                                ["Patient.patientReference"]
+                            ).then(function (org) {
+                                $( ".requester" + org[0].id).html("<div>" + org[0].identifier[0].value + "</div>");
+                            });
+                            let idName = "btnCommReq" + index;
+                            let description = "";
+
+                            if (commReq.text) {
+                                if (commReq.text.div) {
+                                    description = commReq.text.div;
+                                }
                             }
+                            let senderClass = "";
+                            if(commReq.sender){
+                                let organization = commReq.sender.reference.split("/");
+                                senderClass = organization[organization.length - 1];
+                            }
+                            $('#communication-request-selection-list').append(
+                                "<tr><td class='medtd'>" + commReq.id + "</td><td class='medtd'>" + description +
+                                "</td><td class='medtd requester" + senderClass + "'></td><td class='medtd'>" +
+                                commReq.authoredOn + "</td><td class='medtd'><button type='button' class='btn btn-secondary' id='" +
+                                idName + "' >Select</button></td></tr>");
+
+                            $('#' + idName).click(() => {
+                                CDEX.openCommunicationRequest(commReq.id)
+                            });
                         }
-
-                        $('#communication-request-selection-list').append(
-                            "<tr><td class='medtd'>" + commReq.id + "</td><td class='medtd'>" + description +
-                            "</td><td class='medtd'>" + commReq.authoredOn +
-                            "</td><td class='medtd'><button type='button' class='btn btn-secondary' id='" + idName +
-                            "' >Select</button></td></tr>");
-
-                        $('#' + idName).click(() => {CDEX.openCommunicationRequest(commReq.id)});
                     });
                 }
             });
@@ -167,9 +409,17 @@ if (!CDEX) {
         }
     };
 
+    CDEX.reconcile = () => {
+
+        CDEX.disable('btn-submit');
+        CDEX.disable('btn-edit');
+        $('#btn-submit').html("<i class='fa fa-circle-o-notch fa-spin'></i> Submit Communication Request");
+
+        CDEX.addToPayload();
+        CDEX.finalize();
+    };
 
     CDEX.initialize = (client) => {
-        CDEX.loadConfig();
         if (sessionStorage.operationPayload) {
             if (JSON.parse(sessionStorage.tokenResponse).refresh_token) {
                 // save state in localStorage
@@ -185,65 +435,26 @@ if (!CDEX) {
         }
     };
 
-    CDEX.loadConfig = () => {
-        let configText = window.localStorage.getItem("cdex-commres-app-config");
-        if (configText) {
-            let conf = JSON.parse (configText);
-            if (conf['custom']) {
-                CDEX.providerEndpoint = conf['custom'];
-                CDEX.configSetting = "custom";
-            } else {
-                CDEX.providerEndpoint = CDEX.providerEndpoints[conf['selection']];
-                CDEX.configSetting = conf['selection'];
-            }
-        }
-    }
-
     CDEX.finalize = () => {
         let promise;
-
-        var config = {
-            type: 'POST',
-            url: CDEX.providerEndpoint.url + CDEX.submitEndpoint,
+        let config = {
+            type: 'PUT',
+            url: CDEX.payerEndpoint.url + CDEX.submitEndpoint + CDEX.operationPayload.id + "$submit-data",
             data: JSON.stringify(CDEX.operationPayload),
             contentType: "application/fhir+json"
         };
 
-        if (CDEX.providerEndpoint.type !== "open") {
-            config['beforeSend'] = function (xhr) {
-                xhr.setRequestHeader ("Authorization", "Bearer " + CDEX.providerEndpoint.accessToken);
-            };
-        }
-
         promise = $.ajax(config);
 
         promise.then(() => {
-            console.log (JSON.stringify(CDEX.operationPayload, null, 2));
             CDEX.displayConfirmScreen();
-        }, () => CDEX.displayErrorScreen("Communication request submission failed", "Please check the submit endpoint configuration"));
-    }
-
+        }, () => CDEX.displayErrorScreen("Communication submission failed", "Please check the submit endpoint configuration. \n You can close this window now."));
+    };
 
     $('#btn-review').click(CDEX.displayReviewScreen);
-    $('#btn-start').click(CDEX.displayDataRequestScreen);
     $('#btn-edit').click(CDEX.displayDataRequestScreen);
-    // $('#btn-submit').click(CDEX.reconcile);
-
-    CDEX.providerEndpoints.forEach((e, id) => {
-        $('#config-select').append("<option value='" + id + "'>" + e.name + "</option>");
-    });
-    $('#config-select').append("<option value='custom'>Custom</option>");
-    $('#config-text').val(JSON.stringify(CDEX.providerEndpoints[0],null,"   "));
-
-    $('#config-select').on('change', function() {
-        if (this.value !== "custom") {
-            $('#config-text').val(JSON.stringify(CDEX.providerEndpoints[parseInt(this.value)],null,2));
-        }
-    });
-
-    $('#config-text').bind('input propertychange', () => {
-        $('#config-select').val('custom');
-    });
+    $('#btn-back').click(CDEX.displayDataRequestScreen);
+    $('#btn-submit').click(CDEX.reconcile);
 
     FHIR.oauth2.ready(CDEX.initialize);
 
