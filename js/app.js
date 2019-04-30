@@ -241,41 +241,61 @@ if (!CDEX) {
     };
 
     CDEX.openPreview = (docRef) => {
+        let attachment = docRef.content[0].attachment;
+
         CDEX.displayPreviewScreen();
-        if(docRef.content[0].attachment.contentType === "application/pdf"){
-            if(docRef.content[0].attachment.url){
-                let promiseBinary;
-                let config = {
-                    type: 'GET',
-                    url: CDEX.providerEndpoint.url + docRef.content[0].attachment.url
-                };
 
-                promiseBinary = $.ajax(config);
-                promiseBinary.then((binary) => {
-                    console.log(binary);
+        const displayBlob = (blob) => {
+            const blobUrl = URL.createObjectURL(blob);
+            const blobType = blob.type;
+            $('#preview-list').append("<p><object data='" + blobUrl + "' type='" + blobType + "' width='100%' height='600px' /></p>");
+        }
 
-                    $('#preview-list').append("<p></p>");
-                });
-            }else if(docRef.content[0].attachment.data){
-
+        // based on https://stackoverflow.com/questions/16245767/creating-a-blob-from-a-base64-string-in-javascript
+        const b64toBlob = (b64Data, contentType='', sliceSize=512) => {
+            const byteCharacters = atob(b64Data);
+            const byteArrays = [];
+            
+            for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+                const slice = byteCharacters.slice(offset, offset + sliceSize);
+            
+                const byteNumbers = new Array(slice.length);
+                for (let i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+                }
+            
+                const byteArray = new Uint8Array(byteNumbers);
+                byteArrays.push(byteArray);
             }
-            console.log(docRef.content[0].attachment.data);
-        }else if(docRef.content[0].attachment.contentType === "application/hl7-v3+xml"){
+            
+            const blob = new Blob(byteArrays, {type: contentType});
+            return blob;
+        }
+
+        if (attachment.contentType === "application/pdf") {
+            if (attachment.url) {
+                CDEX.client.fetchBinary(attachment.url).then(displayBlob);
+            } else if (attachment.data) {
+                const blob = b64toBlob(attachment.data, "application/pdf");
+                displayBlob(blob);
+            }
+        }
+        else if(attachment.contentType === "application/hl7-v3+xml"){
             let promiseBinary;
             let config = {
                 type: 'GET',
-                url: CDEX.providerEndpoint.url + docRef.content[0].attachment.url
+                url: CDEX.providerEndpoint.url + attachment.url
             };
 
             promiseBinary = $.ajax(config);
             promiseBinary.then((binary) => {
                 console.log(binary);
             });
-        }else if(docRef.content[0].attachment.contentType === "application/fhir+xml"){
+        }else if(attachment.contentType === "application/fhir+xml"){
             let promiseBundle;
             let config = {
                 type: 'GET',
-                url: CDEX.providerEndpoint.url + docRef.content[0].attachment.url
+                url: CDEX.providerEndpoint.url + attachment.url
             };
 
             promiseBundle = $.ajax(config);
