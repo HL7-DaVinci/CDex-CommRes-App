@@ -173,7 +173,7 @@ if (!CDEX) {
                     communicationRequest.payload.forEach(function (content, index) {
                         $('#selection-list').append(
                             "<tr> <td class='medtd'>" + content.contentString +
-                            "</td></tr>" + "<tr><td><table><tbody id='payload" + index + "'></tbody></table></td></tr>");
+                            "</td></tr>" + "<tr><td><table><thead id='head" + index  + "'></thead><tbody id='payload" + index + "'></tbody></table></td></tr>");
                         if(communicationRequest.payload[index].extension) {
                             if (communicationRequest.payload[index].extension[0].valueString) {
                                 let promise;
@@ -216,11 +216,12 @@ if (!CDEX) {
                                 ).then(function(documentReferences) {
                                     if(documentReferences.data.entry){
                                         let d = documentReferences.data.entry;
+                                        $('#head' + index).append("<th>Id</th><th>Author</th><th>Category</th><th>Preview</th>");
                                         d.forEach(function (docRef, docRefIndex) {
                                             let idButton = "previewId" + docRefIndex;
                                             $('#payload' + index).append("<tr><td>" + docRef.resource.id +
                                                 "</td><td>" + docRef.resource.author[0].display + "</td><td>" +
-                                                docRef.resource.subject.reference + "</td><td>" + docRef.resource.category[0].text +
+                                                docRef.resource.category[0].text +
                                                 "</td><td><button type='button' class='btn btn-secondary' id='" + idButton +
                                                 "'>Preview</button></td></tr>");
                                             $('#' + idButton).click(() => {
@@ -395,7 +396,7 @@ if (!CDEX) {
                                 "<tr><td class='medtd'>" + commReq.id + "</td><td class='medtd'>" + description +
                                 "</td><td class='medtd requester" + senderClass + "'></td><td class='medtd'>" +
                                 commReq.authoredOn + "</td><td class='medtd'><button type='button' class='btn btn-secondary' id='" +
-                                idName + "' >Select</button></td></tr>");
+                                idName + "' >Respond</button></td></tr>");
 
                             $('#' + idName).click(() => {
                                 CDEX.openCommunicationRequest(commReq.id)
