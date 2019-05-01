@@ -6,7 +6,7 @@ if (!CDEX) {
 (function () {
 
   CDEX.clientSettings = {
-    "client_id": "3fcec06b-9b9e-48a8-aa38-d6d51f07007b", //"0d52a72e-7de9-4a48-aed9-6467c087621e", //
+    "client_id": "3fcec06b-9b9e-48a8-aa38-d6d51f07007b", //"0d52a72e-7de9-4a48-aed9-6467c087621e",
     "scope"    : "user/*.* openid profile"
   };
 
@@ -21,6 +21,10 @@ if (!CDEX) {
       "name": "DaVinci CDex Payer",
       "type": "open",
       "url": "https://api-v8-r4.hspconsortium.org/DaVinciCDexPayer/open"
+  };
+
+  CDEX.scenarioDescription = {
+    "description" : "DESCRIPTION"
   };
 
   CDEX.operationPayload = {
@@ -55,7 +59,7 @@ if (!CDEX) {
         "subject": {
             "reference": "Patient/cdex-example-patient"
         },
-        "sent": "2016-06-12T18:01:10-08:00",
+        "sent": "SENTDATE",
         "recipient": [
             {
                 "reference": "Organization/cdex-example-payer"
@@ -66,5 +70,4 @@ if (!CDEX) {
         },
         "payload": ["PAYLOAD"]
   };
-
 }());
