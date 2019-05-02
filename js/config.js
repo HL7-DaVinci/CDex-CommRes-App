@@ -6,7 +6,7 @@ if (!CDEX) {
 (function () {
 
   CDEX.clientSettings = {
-    "client_id": "3fcec06b-9b9e-48a8-aa38-d6d51f07007b", //"0d52a72e-7de9-4a48-aed9-6467c087621e",
+    "client_id": "0d52a72e-7de9-4a48-aed9-6467c087621e", //"3fcec06b-9b9e-48a8-aa38-d6d51f07007b",
     "scope"    : "user/*.* openid profile"
   };
 
@@ -24,7 +24,14 @@ if (!CDEX) {
   };
 
   CDEX.scenarioDescription = {
-    "description" : "DESCRIPTION"
+      "description" : "Lorem ipsum dolor sit amet, consectetur adipiscing elit,\n" +
+          "            sed do eiusmod tempor incididunt ut labore et dolore magna\n" +
+          "            aliqua. Ut enim ad minim veniam, quis nostrud exercitation\n" +
+          "            ullamco laboris nisi ut aliquip ex ea commodo consequat.\n" +
+          "            Duis aute irure dolor in reprehenderit in voluptate velit\n" +
+          "            esse cillum dolore eu fugiat nulla pariatur. Excepteur sint\n" +
+          "            occaecat cupidatat non proident, sunt in culpa qui officia\n" +
+          "            deserunt mollit anim id est laborum."
   };
 
   CDEX.operationPayload = {

@@ -36,7 +36,7 @@ img {
 .wine-row {
     display: flex;
     flex-direction: row;
-    height: 120px;
+    height: 80px;
 }
 
 .wine-text-container {

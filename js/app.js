@@ -27,6 +27,12 @@ if (!CDEX) {
         return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
     }
 
+    CDEX.formatDate = (date) => {
+        // TODO: implement a more sensible screen date formatter that uses an ISO date parser and translates to local time
+        const d = date.split('T');
+        return d[0] + ' ' + d[1].substring(0,5);
+    }
+
     CDEX.displayPatient = (pt, screen) => {
         $('#' + screen).html(CDEX.getPatientName(pt));
     };
@@ -68,7 +74,8 @@ if (!CDEX) {
     };
 
     CDEX.displayReviewScreen = () => {
-        $("card").empty();
+        $("#card").empty();
+        $("#final-list").empty();
         let sender = CDEX.communicationRequest.sender.reference.split("/");
         CDEX.client.api.fetchAll(
             {
@@ -95,7 +102,7 @@ if (!CDEX) {
             CDEX.communicationRequest.payload.forEach(function (content, index) {
                 $('#final-list').append(
                     "<tr> <td class='medtd'>" + content.contentString +
-                    "</td></tr><tr><td><table><tbody id='finalPayload" + index + "'></tbody></table></td></tr>");
+                    "</td></tr><tr><td><table><thead id='reviewHead" + index  + "'></thead><tbody id='finalPayload" + index + "'></tbody></table></td></tr>");
                 if (CDEX.communicationRequest.payload[index].extension) {
                     if (CDEX.communicationRequest.payload[index].extension[0].valueString) {
                         let promise;
@@ -137,14 +144,16 @@ if (!CDEX) {
                                 }
                             }
                         ).then(function (documentReferences) {
-                            if (documentReferences.length) {
-                                documentReferences.forEach(function (docRef) {
-                                    $('#finalPayload' + index).append("<tr><td>" + docRef.id +
-                                        "</td><td>" + docRef.author[0].display + "</td><td>" +
-                                        docRef.subject.reference + "</td><td>" + docRef.category[0].text +
-                                        "</td></tr>");
+                            if(documentReferences.data.entry){
+                                let d = documentReferences.data.entry;
+                               $('#reviewHead' + index).append("<th>Id</th><th>Author</th><th>Category</th>");
+                                d.forEach(function (docRef, docRefIndex) {
+                                    $('#finalPayload' + index).append("<tr><td>" + docRef.resource.id +
+                                        "</td><td>" + docRef.resource.author[0].display + "</td><td>" +
+                                        docRef.resource.category[0].text +
+                                        "</td><td>" + CDEX.formatDate(docRef.resource.date) + "</td></tr>");
                                 });
-                            } else {
+                            }else{
                                 $('#finalPayload' + index).append("<tr><td>No " + content.contentString + " available</td></tr>");
                             }
                         });
@@ -295,7 +304,7 @@ if (!CDEX) {
                                     if(documentReferences.data.entry){
                                         let d = documentReferences.data.entry;
 
-                                        $('#head' + index).append("<th>Id</th><th>Author</th><th>Category</th><th>Preview</th>");
+                                        $('#head' + index).append("<th>Id</th><th>Author</th><th>Category</th><th>Created Date</th><th>Preview</th>");
                                         d.forEach(function (docRef, docRefIndex) {
                                             CDEX.resources.docRef.push({
                                                 "id": docRef.resource.id,
@@ -306,7 +315,8 @@ if (!CDEX) {
                                             let idButton = "previewId" + docRefIndex;
                                             $('#payload' + index).append("<tr><td>" + docRef.resource.id +
                                                 "</td><td>" + docRef.resource.author[0].display + "</td><td>" +
-                                                docRef.resource.category[0].text +
+                                                docRef.resource.category[0].text + "</td><td>" +
+                                                CDEX.formatDate(docRef.resource.date) +
                                                 "</td><td><button type='button' class='btn btn-secondary' id='" + idButton +
                                                 "'>Preview</button></td></tr>");
                                             $('#' + idButton).click(() => {
@@ -449,7 +459,57 @@ if (!CDEX) {
     CDEX.loadData = (client) => {
         CDEX.displayIntroScreen();
         $('#scenario-intro').html(CDEX.scenarioDescription.description);
-        CDEX.client = client;
+        try {
+            CDEX.client = client;
+            CDEX.client.api.fetchAll(
+                {type: "CommunicationRequest"
+                }
+            ).then(function(communicationRequests) {
+                CDEX.communicationRequests = communicationRequests;
+                if(communicationRequests.length) {
+                    CDEX.communicationRequests.forEach(function(commReq, index){
+                        if(commReq.sender) {
+                            let organization = commReq.sender.reference.split("/");
+                            CDEX.client.api.fetchAll(
+                                {
+                                    type: "Organization",
+                                    query: {
+                                        _id: organization[1]
+                                    }
+                                },
+                                ["Patient.patientReference"]
+                            ).then(function (org) {
+                                $( ".requester" + org[0].id).html("<div>" + org[0].identifier[0].value + "</div>");
+                            });
+                            let idName = "btnCommReq" + index;
+                            let description = "";
+
+                            if (commReq.text) {
+                                if (commReq.text.div) {
+                                    description = commReq.text.div;
+                                }
+                            }
+                            let senderClass = "";
+                            if(commReq.sender){
+                                let organization = commReq.sender.reference.split("/");
+                                senderClass = organization[organization.length - 1];
+                            }
+                            $('#communication-request-selection-list').append(
+                                "<tr><td class='medtd'>" + commReq.id + "</td><td class='medtd'>" + description +
+                                "</td><td class='medtd requester" + senderClass + "'></td><td class='medtd'>" +
+                                CDEX.formatDate(commReq.authoredOn) + "</td><td class='medtd'><button type='button' class='btn btn-secondary' id='" +
+                                idName + "' >Respond</button></td></tr>");
+
+                            $('#' + idName).click(() => {
+                                CDEX.openCommunicationRequest(commReq.id)
+                            });
+                        }
+                    });
+                }
+            });
+        } catch (err) {
+            CDEX.displayErrorScreen("Failed to initialize communication requests menu", "Please make sure that everything is OK with request configuration");
+        }
     };
 
     CDEX.reconcile = () => {
@@ -491,65 +551,17 @@ if (!CDEX) {
         console.log(JSON.stringify(CDEX.operationPayload, null, 2));
         promise.then(() => {
             CDEX.displayConfirmScreen();
-        }, () => CDEX.displayErrorScreen("Communication submission failed", "Please check the submit endpoint configuration. \n You can close this window now."));
+        }, () => CDEX.displayErrorScreen("Communication submission failed", "Please check the submit endpoint configuration.  You can close this window now."));
     };
 
     $('#btn-start').click(function (){
-        try {
-            CDEX.displayCommunicationRequestScreen();
-
-            CDEX.client.api.fetchAll(
-                {type: "CommunicationRequest"
-                }
-            ).then(function(communicationRequests) {
-                CDEX.communicationRequests = communicationRequests;
-                if(communicationRequests.length) {
-                    CDEX.communicationRequests.forEach(function(commReq, index){
-                        if(commReq.sender) {
-                            let organization = commReq.sender.reference.split("/");
-                            CDEX.client.api.fetchAll(
-                                {
-                                    type: "Organization",
-                                    query: {
-                                        _id: organization[1]
-                                    }
-                                },
-                                ["Patient.patientReference"]
-                            ).then(function (org) {
-                                $( ".requester" + org[0].id).html("<div>" + org[0].identifier[0].value + "</div>");
-                            });
-                            let idName = "btnCommReq" + index;
-                            let description = "";
-
-                            if (commReq.text) {
-                                if (commReq.text.div) {
-                                    description = commReq.text.div;
-                                }
-                            }
-                            let senderClass = "";
-                            if(commReq.sender){
-                                let organization = commReq.sender.reference.split("/");
-                                senderClass = organization[organization.length - 1];
-                            }
-                            $('#communication-request-selection-list').append(
-                                "<tr><td class='medtd'>" + commReq.id + "</td><td class='medtd'>" + description +
-                                "</td><td class='medtd requester" + senderClass + "'></td><td class='medtd'>" +
-                                commReq.authoredOn + "</td><td class='medtd'><button type='button' class='btn btn-secondary' id='" +
-                                idName + "' >Respond</button></td></tr>");
-
-                            $('#' + idName).click(() => {
-                                CDEX.openCommunicationRequest(commReq.id)
-                            });
-                        }
-                    });
-                }
-            });
-        } catch (err) {
-            CDEX.displayErrorScreen("Failed to initialize communication requests menu", "Please make sure that everything is OK with request configuration");
-        }
-
+        CDEX.displayCommunicationRequestScreen();
     });
 
+    $('#btn-back-comm-list').click(function (){
+        $('#selection-list').empty();
+        CDEX.displayCommunicationRequestScreen();
+    });
     $('#btn-review').click(CDEX.displayReviewScreen);
     $('#btn-edit').click(CDEX.displayDataRequestScreen);
     $('#btn-back').click(CDEX.displayDataRequestScreen);

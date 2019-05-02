@@ -13,7 +13,7 @@
 </head>
 <body>
 <div class="wine-row">
-    <img src="images/response.png" style="height:100px; width:150px">
+    <img src="images/response.png" style="height:80px; width:130px">
     <div class="wine-text-container"><h1>CDex Communication Fulfillment Application</h1></div>
 </div>
 <div id="intro-screen" class="card alert-info screen">
@@ -31,11 +31,11 @@
         <table class='table'>
             <thead>
             <tr>
-                <th>Request ID</th>
-                <th>Description</th>
-                <th>Sender</th>
-                <th>Created Date</th>
-                <th>Action</th>
+                <th class="medtd">Request ID</th>
+                <th class="medtd">Description</th>
+                <th class="medtd">Sender</th>
+                <th class="medtd">Created Date</th>
+                <th class="medtd">Action</th>
             </tr>
             </thead>
             <tbody id='communication-request-selection-list'>
@@ -46,7 +46,7 @@
     </div>
 </div>
 <div id="data-request-screen" class="screen">
-    <h2>Communication Request results for <span id="patient-name"></span></h2>
+    <h2>Communication Request results for <span id="patient-name">[Loading ...]</span></h2>
     <div id="menu-request-list">
         <p><div class='dvt'>
         <table class='table'>
@@ -60,6 +60,7 @@
     </div>
         </p>
     </div>
+    <button type="button" class="btn btn-secondary" id="btn-back-comm-list">Back</button>
     <button type="button" class="btn btn-primary" id="btn-review">Review data requests</button>
 </div>
 <div id="preview-screen" class="screen">
@@ -96,6 +97,7 @@
         <h5 class="card-title">Confirmation</h5>
         <p class="card-text">Communication sent to payer.</p>
         <p class="card-text">You can close this window now.</p>
+        <p class="card-text">See the console for details.</p>
     </div>
 </div>
 <div id="error-screen" class="card alert-danger screen">
