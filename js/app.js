@@ -384,7 +384,9 @@ if (!CDEX) {
 
             promiseBinary = $.ajax(config);
             promiseBinary.then((binary) => {
-                console.log(binary);
+                let oSerializer = new XMLSerializer();
+                let sXML = oSerializer.serializeToString(binary);
+                $('#preview-list').append("<tr><td>" + sXML + "</td></tr>");
             });
         }else if(attachment.contentType === "application/fhir+xml"){
             let promiseBundle;
@@ -467,6 +469,7 @@ if (!CDEX) {
             ).then(function(communicationRequests) {
                 CDEX.communicationRequests = communicationRequests;
                 if(communicationRequests.length) {
+                $('#communication-request-selection-list').empty();
                     CDEX.communicationRequests.forEach(function(commReq, index){
                         if(commReq.sender) {
                             let organization = commReq.sender.reference.split("/");
