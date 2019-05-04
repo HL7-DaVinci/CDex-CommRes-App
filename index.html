@@ -14,13 +14,13 @@
 <body>
 <div class="wine-row">
     <img src="images/response.png" style="height:80px; width:130px">
-    <div class="wine-text-container"><h1>CDex Communication Fulfillment Application</h1></div>
+    <div class="wine-text-container"><h1>CDex Communication Fulfillment</h1></div>
 </div>
 <div id="intro-screen" class="card alert-info screen">
     <div class="card-body">
-        <h5 class="card-title">Scenario Description</h5>
+        <h5 class="card-title">Welcome info</h5>
         <p class='card-text' id='scenario-intro'></p>
-        <a href="#" class="btn btn-primary" id="btn-start">Communication Requests</a>
+        <a href="#" class="btn btn-primary" id="btn-start">Proceed</a>
     </div>
 </div>
 <div id="communication-request-screen" class="screen">
@@ -34,7 +34,7 @@
                 <th class="medtd">Request ID</th>
                 <th class="medtd">Description</th>
                 <th class="medtd">Sender</th>
-                <th class="medtd">Created Date</th>
+                <th class="medtd">Received On</th>
                 <th class="medtd">Action</th>
             </tr>
             </thead>
@@ -62,7 +62,7 @@
         </p>
     </div>
     <button type="button" class="btn btn-secondary" id="btn-back-comm-list">Back</button>
-    <button type="button" class="btn btn-primary" id="btn-review">Review data requests</button>
+    <button type="button" class="btn btn-primary" id="btn-review">Review</button>
 </div>
 <div id="preview-screen" class="screen">
     <table class='table'>
@@ -71,7 +71,7 @@
     <button type="button" class="btn btn-secondary" id="btn-back">Back</button>
 </div>
 <div id="review-screen" class="screen">
-    <h1>Reconciled data requests for <span id="review-name"></span></h1>
+    <h3>Review Communication for <span id="review-name"></span>[Loading...]</h3>
     <div class="card-body">
         <h5 class="card-title">CDex Endpoint Configuration</h5>
         <div id="card"></div>
@@ -87,8 +87,8 @@
         </table>
     </div></p></div>
     <div>
-        <button type="button" class="btn btn-secondary" id="btn-edit">Edit requests</button>
-        <button type="button" class="btn btn-primary" id="btn-submit">Submit requests</button>
+        <button type="button" class="btn btn-secondary" id="btn-edit">Edit</button>
+        <button type="button" class="btn btn-primary" id="btn-submit">Submit</button>
     </div>
 </div>
 <div id="confirm-screen" class="card alert-info screen">

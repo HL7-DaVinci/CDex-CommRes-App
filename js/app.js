@@ -27,11 +27,11 @@ if (!CDEX) {
         return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
     }
 
-    CDEX.formatDate = (date) => {
-        // TODO: implement a more sensible screen date formatter that uses an ISO date parser and translates to local time
-        const d = date.split('T');
-        return d[0] + ' ' + d[1].substring(0,5);
-    }
+    // CDEX.formatDate = (date) => {
+    //     // TODO: implement a more sensible screen date formatter that uses an ISO date parser and translates to local time
+    //     const d = date.split('T');
+    //     return d[0] + ' ' + d[1].substring(0,5);
+    // }
 
     CDEX.displayPatient = (pt, screen) => {
         $('#' + screen).html(CDEX.getPatientName(pt));
@@ -151,7 +151,7 @@ if (!CDEX) {
                                     $('#finalPayload' + index).append("<tr><td>" + docRef.resource.id +
                                         "</td><td>" + docRef.resource.author[0].display + "</td><td>" +
                                         docRef.resource.category[0].text +
-                                        "</td><td>" + CDEX.formatDate(docRef.resource.date) + "</td></tr>");
+                                        "</td><td>" + docRef.resource.date + "</td></tr>");
                                 });
                             }else{
                                 $('#finalPayload' + index).append("<tr><td>No " + content.contentString + " available</td></tr>");
@@ -316,7 +316,7 @@ if (!CDEX) {
                                             $('#payload' + index).append("<tr><td>" + docRef.resource.id +
                                                 "</td><td>" + docRef.resource.author[0].display + "</td><td>" +
                                                 docRef.resource.category[0].text + "</td><td>" +
-                                                CDEX.formatDate(docRef.resource.date) +
+                                                docRef.resource.date +
                                                 "</td><td><button type='button' class='btn btn-secondary' id='" + idButton +
                                                 "'>Preview</button></td></tr>");
                                             $('#' + idButton).click(() => {
@@ -500,7 +500,7 @@ if (!CDEX) {
                             $('#communication-request-selection-list').append(
                                 "<tr><td class='medtd'>" + commReq.id + "</td><td class='medtd'>" + description +
                                 "</td><td class='medtd requester" + senderClass + "'></td><td class='medtd'>" +
-                                CDEX.formatDate(commReq.authoredOn) + "</td><td class='medtd'><button type='button' class='btn btn-secondary' id='" +
+                                commReq.authoredOn + "</td><td class='medtd'><button type='button' class='btn btn-secondary' id='" +
                                 idName + "' >Respond</button></td></tr>");
 
                             $('#' + idName).click(() => {
