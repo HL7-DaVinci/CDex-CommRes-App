@@ -3,6 +3,7 @@ if (!CDEX) {
     CDEX = {};
 }
 
+//config file
 (function () {
 
   CDEX.clientSettings = {
