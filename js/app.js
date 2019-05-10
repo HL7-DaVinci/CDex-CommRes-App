@@ -27,19 +27,28 @@ if (!CDEX) {
         return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
     }
 
-    // CDEX.formatDate = (date) => {
-    //     // TODO: implement a more sensible screen date formatter that uses an ISO date parser and translates to local time
-    //     const d = date.split('T');
-    //     return d[0] + ' ' + d[1].substring(0,5);
-    // }
+    CDEX.formatDate = (date) => {
+        // TODO: implement a more sensible screen date formatter that uses an ISO date parser and translates to local time
+        const d = date.split('T');
+        if(d.length > 1) {
+            return d[0] + ' ' + d[1].substring(0, 5);
+        }else{
+            return date;
+        }
+    }
 
-    CDEX.displayPatient = (pt, screen) => {
-        $('#' + screen).html(CDEX.getPatientName(pt));
+    CDEX.displayPatient = (pt) => {
+        $('#patient-name, #review-name').html(CDEX.getPatientName(pt));
     };
 
     CDEX.displayOrganization = (org, screen) => {
-        $('#' + screen).append("<table><tbody><tr><td>" + org.identifier[0].system + "</td><td>" +
-            org.identifier[0].value + "</td></tr></tbody></table>");
+        if(org.identifier.length > 0) {
+            CDEX.payerEndpoint.name = org.identifier[0].value;
+            CDEX.payerEndpoint.url = org.identifier[0].system;
+
+            $('#' + screen).append("<table><tbody><tr><td>" + org.identifier[0].system + "</td><td>" +
+                org.identifier[0].value + "</td></tr></tbody></table>");
+        }
     };
 
     CDEX.displayScreen = (screenID) => {
@@ -76,28 +85,15 @@ if (!CDEX) {
     CDEX.displayReviewScreen = () => {
         $("#card").empty();
         $("#final-list").empty();
-        let sender = CDEX.communicationRequest.sender.reference.split("/");
-        CDEX.client.api.fetchAll(
-            {
-                type: "Organization",
-                query: {
-                    _id: sender[1]
+
+        if(CDEX.communicationRequest.contained){
+            CDEX.communicationRequest.contained.forEach(function (containedResource) {
+                if('#' + containedResource.id === CDEX.communicationRequest.sender.reference) {
+                    CDEX.displayOrganization(containedResource, "card");
                 }
-            }
-        ).then(function (organization) {
-            CDEX.displayOrganization(organization[0], "card");
-        });
-        CDEX.client.api.fetchAll(
-            {
-                type: "Patient",
-                query: {
-                    _id: CDEX.communicationRequest.subject.reference
-                }
-            },
-            ["Patient.patientReference"]
-        ).then(function (patients) {
-            CDEX.displayPatient(patients[0], "review-name");
-        });
+            });
+        }
+
         if (CDEX.communicationRequest.payload) {
             CDEX.communicationRequest.payload.forEach(function (content, index) {
                 $('#final-list').append(
@@ -238,13 +234,14 @@ if (!CDEX) {
                     },
                     [ "Patient.patientReference" ]
                 ).then(function(patients) {
-                    CDEX.displayPatient(patients[0], "patient-name");
+                    CDEX.displayPatient(patients[0]);
                 });
                 if(communicationRequest.payload){
                     communicationRequest.payload.forEach(function (content, index) {
                         $('#selection-list').append(
-                            "<tr> <td class='medtd'>" + content.contentString +
-                            "</td></tr>" + "<tr><td><table><thead id='head" + index  + "'></thead><tbody id='payload" + index + "'></tbody></table></td></tr>");
+                            "<tr> <td class='medtd'><b>" + content.contentString + "</b></td></tr>" +
+                            "<tr><td><table><thead id='head" + index  +
+                            "'></thead><tbody id='payload" + index + "'></tbody></table></td></tr>");
                         if(communicationRequest.payload[index].extension) {
                             if (communicationRequest.payload[index].extension[0].valueString) {
                                 let promise;
@@ -312,15 +309,18 @@ if (!CDEX) {
                                                 "docRefResource": docRef.resource,
                                                 "results": []
                                             });
-                                            let idButton = "previewId" + docRefIndex;
+                                            let idPreview = "previewId" + docRefIndex;
                                             $('#payload' + index).append("<tr><td>" + docRef.resource.id +
                                                 "</td><td>" + docRef.resource.author[0].display + "</td><td>" +
                                                 docRef.resource.category[0].text + "</td><td>" +
                                                 docRef.resource.date +
-                                                "</td><td><button type='button' class='btn btn-secondary' id='" + idButton +
-                                                "'>Preview</button></td></tr>");
+                                                "</td><td id='" + idPreview + "'></td></tr>");
+
+                                            const idButton = "REQ-" + idPreview;
+                                            $('#' + idPreview).append("<div><a href='#' id='" + idButton + "'> preview </a></div>");
                                             $('#' + idButton).click(() => {
                                                 CDEX.openPreview(docRef.resource);
+                                                return false;
                                             });
                                         });
                                     }else{
@@ -408,11 +408,10 @@ if (!CDEX) {
     };
 
     CDEX.addToPayload = () => {
-        console.log(CDEX.resources);
         let timestamp = CDEX.now();
         let communication = CDEX.operationPayload;
         communication.authoredOn = timestamp;
-        communication.basedOn[0].reference = "CommunicationRequest/" + "cdex-example-resource-request"//CDEX.communicationRequest.id;
+        communication.basedOn[0].reference = "CommunicationRequest/" + CDEX.communicationRequest.id;
         communication.id = CDEX.getGUID();
         communication.sent = timestamp;
         let payload = [];
@@ -472,18 +471,16 @@ if (!CDEX) {
                 $('#communication-request-selection-list').empty();
                     CDEX.communicationRequests.forEach(function(commReq, index){
                         if(commReq.sender) {
-                            let organization = commReq.sender.reference.split("/");
-                            CDEX.client.api.fetchAll(
-                                {
-                                    type: "Organization",
-                                    query: {
-                                        _id: organization[1]
+                            if(commReq.contained){
+                                commReq.contained.forEach(function (containedResource) {
+                                    if('#' + containedResource.id == commReq.sender.reference) {
+                                        if(containedResource.identifier) {
+                                            $(".requester" + containedResource.id).html("<div>" +
+                                                containedResource.identifier[0].value + "</div>");
+                                        }
                                     }
-                                },
-                                ["Patient.patientReference"]
-                            ).then(function (org) {
-                                $( ".requester" + org[0].id).html("<div>" + org[0].identifier[0].value + "</div>");
-                            });
+                                });
+                            }
                             let idName = "btnCommReq" + index;
                             let description = "";
 
@@ -500,11 +497,14 @@ if (!CDEX) {
                             $('#communication-request-selection-list').append(
                                 "<tr><td class='medtd'>" + commReq.id + "</td><td class='medtd'>" + description +
                                 "</td><td class='medtd requester" + senderClass + "'></td><td class='medtd'>" +
-                                commReq.authoredOn + "</td><td class='medtd'><button type='button' class='btn btn-secondary' id='" +
-                                idName + "' >Respond</button></td></tr>");
+                                commReq.authoredOn +
+                                "</td><td class='medtd' id='" + idName + "'></td></tr>");
 
-                            $('#' + idName).click(() => {
-                                CDEX.openCommunicationRequest(commReq.id)
+                            const idButton = "COMM-" + idName;
+                            $('#' + idName).append("<div><a href='#' id='" + idButton + "'> respond </a></div>");
+                            $('#' + idButton).click(() => {
+                                CDEX.openCommunicationRequest(commReq.id);
+                                return false;
                             });
                         }
                     });
@@ -543,13 +543,19 @@ if (!CDEX) {
 
     CDEX.finalize = () => {
         let promise;
+        console.log(CDEX.payerEndpoint.url);
         let config = {
             type: 'PUT',
-            url: CDEX.payerEndpoint.url + CDEX.submitEndpoint + CDEX.operationPayload.id + "$submit-data",
+            url: CDEX.payerEndpoint.url + CDEX.submitEndpoint + CDEX.operationPayload.id,
             data: JSON.stringify(CDEX.operationPayload),
             contentType: "application/fhir+json"
+            // ,
+            // headers: {"user_key": "zGlPsrIfhgP6"}
         };
 
+        // config['beforeSend'] = (xhr) => {
+        //     xhr.setRequestHeader ("user_key", "");
+        // };
        promise = $.ajax(config);
         console.log(JSON.stringify(CDEX.operationPayload, null, 2));
         promise.then(() => {
