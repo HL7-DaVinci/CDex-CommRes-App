@@ -7,6 +7,7 @@ if (!CDEX) {
     CDEX.client = null;
     CDEX.communicationRequests = null;
     CDEX.communicationRequest = null;
+    CDEX.reviewCommunication = [];
 
     CDEX.resources = {
         "queries": [],
@@ -29,12 +30,13 @@ if (!CDEX) {
 
     CDEX.formatDate = (date) => {
         // TODO: implement a more sensible screen date formatter that uses an ISO date parser and translates to local time
-        const d = date.split('T');
-        if(d.length > 1) {
-            return d[0] + ' ' + d[1].substring(0, 5);
-        }else{
-            return date;
+        if(date) {
+            const d = date.split('T');
+            if (d.length > 1) {
+                return d[0] + ' ' + d[1].substring(0, 5);
+            }
         }
+        return date;
     }
 
     CDEX.displayPatient = (pt) => {
@@ -93,70 +95,8 @@ if (!CDEX) {
                 }
             });
         }
+        CDEX.displayScreen('review-screen');
 
-        if (CDEX.communicationRequest.payload) {
-            CDEX.communicationRequest.payload.forEach(function (content, index) {
-                $('#final-list').append(
-                    "<tr> <td class='medtd'>" + content.contentString +
-                    "</td></tr><tr><td><table><thead id='reviewHead" + index  + "'></thead><tbody id='finalPayload" + index + "'></tbody></table></td></tr>");
-                if (CDEX.communicationRequest.payload[index].extension) {
-                    if (CDEX.communicationRequest.payload[index].extension[0].valueString) {
-                        let promise;
-                        let config = {
-                            type: 'GET',
-                            url: CDEX.providerEndpoint.url + "/" + CDEX.communicationRequest.payload[index].extension[0].valueString
-                        };
-
-                        promise = $.ajax(config);
-                        promise.then((results) => {
-                            if (results) {
-                                if(results.total == 0){
-                                    $('#finalPayload' + index).append("<tr><td>No matching data</td></tr>");
-                                }else {
-                                    if(results.entry) {
-                                        results.entry.forEach(function (result) {
-                                            if(result.resource.text){
-                                                $('#finalPayload' + index).append("<tr><td>" + result.resource.text.div + "</td></tr>");
-                                            }else {
-                                                $('#finalPayload' + index).append("<tr><td><pre>" + JSON.stringify(result.resource, null, '\t') + "</pre></td></tr>");
-                                            }
-                                        });
-                                    }else{
-                                        if(results.text){
-                                            $('#finalPayload' + index).append("<tr><td>" + results.text.div + "</td></tr>");
-                                        }else{
-                                            $('#finalPayload' + index).append("<tr><td><pre>" + JSON.stringify(results, null, '\t') + "</pre></td></tr>");
-                                        }
-                                    }
-                                }
-                            }
-                        });
-                    } else if (CDEX.communicationRequest.payload[index].extension[0].valueCodeableConcept) {
-                        CDEX.client.api.fetchAllWithReferences(
-                            {
-                                type: "DocumentReference",
-                                query: {
-                                    type: CDEX.communicationRequest.payload[index].extension[0].valueCodeableConcept.coding[0].code
-                                }
-                            }
-                        ).then(function (documentReferences) {
-                            if(documentReferences.data.entry){
-                                let d = documentReferences.data.entry;
-                               $('#reviewHead' + index).append("<th>Id</th><th>Author</th><th>Category</th>");
-                                d.forEach(function (docRef, docRefIndex) {
-                                    $('#finalPayload' + index).append("<tr><td>" + docRef.resource.id +
-                                        "</td><td>" + docRef.resource.author[0].display + "</td><td>" +
-                                        docRef.resource.category[0].text +
-                                        "</td><td>" + docRef.resource.date + "</td></tr>");
-                                });
-                            }else{
-                                $('#finalPayload' + index).append("<tr><td>No " + content.contentString + " available</td></tr>");
-                            }
-                        });
-                    }
-                }
-            });
-        }
         CDEX.resources.docRef.forEach(function (docRef, index){
             let attachment = docRef.docRefResource.content[0].attachment;
                 CDEX.resources.docRef[index].results.push({"url": attachment.url, "contentType": attachment.contentType});
@@ -199,7 +139,43 @@ if (!CDEX) {
                 });
             }
         });
-        CDEX.displayScreen('review-screen');
+
+        CDEX.resources.queries.forEach(function (data){
+            if(data.answers){
+                if(data.answers.id) {
+                    $('#final-list').append(
+                        "<tr> <td class='medtd'><h6>" + data.question +
+                        "</h6>" + data.answers.id + "</td></tr>");
+                }else{
+                    $('#final-list').append(
+                        "<tr> <td class='medtd'><h6>" + data.question +
+                        "</h6>" + data.answers[0].resource.id + "</td></tr>");
+                }
+            }
+        });
+
+        let tr = "";
+        CDEX.resources.docRef.forEach(function (data){
+            if(data.index === 0) {
+                tr = "<tr> <td class='medtd'><h6>" + data.category +
+                    "</h6></td></tr><tr><td><table><thead><th>Id</th><th>Category</th><th>Author</th><th>Created On</th></thead><tbody>";
+                tr += "<tr><td>" + data.docRefResource.id + "</td><td>" +
+                    data.docRefResource.category[0].text + "</td><td>" +
+                    data.docRefResource.author[0].display + "</td><td>" +
+                    CDEX.formatDate(data.docRefResource.date) + "</td></tr>";
+
+            }else{
+                tr += "<tr><td>" + data.docRefResource.id + "</td><td>" +
+                    data.docRefResource.category[0].text + "</td><td>" +
+                    data.docRefResource.author[0].display + "</td><td>" +
+                    CDEX.formatDate(data.docRefResource.date) + "</td></tr>";
+            }
+
+            if(data.index === data.maxIndex){
+                tr += "</tbody></table></td></tr>";
+                $('#final-list').append(tr);
+            }
+        });
     };
 
     CDEX.displayErrorScreen = (title, message) => {
@@ -299,6 +275,7 @@ if (!CDEX) {
                                 ).then(function(documentReferences) {
 
                                     if(documentReferences.data.entry){
+                                        CDEX.reviewCommunication.push(documentReferences);
                                         let d = documentReferences.data.entry;
 
                                         $('#head' + index).append("<th>Id</th><th>Author</th><th>Category</th><th>Created Date</th><th>Preview</th>");
@@ -307,13 +284,16 @@ if (!CDEX) {
                                                 "id": docRef.resource.id,
                                                 "code": communicationRequest.payload[index].extension[0].valueCodeableConcept.coding[0].code,
                                                 "docRefResource": docRef.resource,
+                                                "category": content.contentString,
+                                                "index": docRefIndex,
+                                                "maxIndex": d.length - 1,
                                                 "results": []
                                             });
                                             let idPreview = "previewId" + docRefIndex;
                                             $('#payload' + index).append("<tr><td>" + docRef.resource.id +
                                                 "</td><td>" + docRef.resource.author[0].display + "</td><td>" +
                                                 docRef.resource.category[0].text + "</td><td>" +
-                                                docRef.resource.date +
+                                                CDEX.formatDate(docRef.resource.date) +
                                                 "</td><td id='" + idPreview + "'></td></tr>");
 
                                             const idButton = "REQ-" + idPreview;
@@ -336,10 +316,12 @@ if (!CDEX) {
     };
 
     CDEX.openPreview = (docRef) => {
+
         let attachment = docRef.content[0].attachment;
         CDEX.displayPreviewScreen();
 
         const displayBlob = (blob) => {
+            $('#spinner-preview').hide();
             const blobUrl = URL.createObjectURL(blob);
             const blobType = blob.type;
             $('#preview-list').append("<p><object data='" + blobUrl + "' type='" + blobType + "' width='100%' height='600px' /></p>");
@@ -386,6 +368,7 @@ if (!CDEX) {
             promiseBinary.then((binary) => {
                 let oSerializer = new XMLSerializer();
                 let sXML = oSerializer.serializeToString(binary);
+                $('#spinner-preview').hide();
                 $('#preview-list').append("<tr><td>" + sXML + "</td></tr>");
             });
         }else if(attachment.contentType === "application/fhir+xml"){
@@ -400,6 +383,7 @@ if (!CDEX) {
                 let bundle = bundles.entry;
                 bundle.forEach(function (content) {
                     if (content.resource.text) {
+                        $('#spinner-preview').hide();
                         $('#preview-list').append("<tr><td>" + content.resource.text.div + "</td></tr>");
                     }
                 });
@@ -497,7 +481,7 @@ if (!CDEX) {
                             $('#communication-request-selection-list').append(
                                 "<tr><td class='medtd'>" + commReq.id + "</td><td class='medtd'>" + description +
                                 "</td><td class='medtd requester" + senderClass + "'></td><td class='medtd'>" +
-                                commReq.authoredOn +
+                                CDEX.formatDate(commReq.authoredOn) +
                                 "</td><td class='medtd' id='" + idName + "'></td></tr>");
 
                             const idButton = "COMM-" + idName;
@@ -573,7 +557,10 @@ if (!CDEX) {
     });
     $('#btn-review').click(CDEX.displayReviewScreen);
     $('#btn-edit').click(CDEX.displayDataRequestScreen);
-    $('#btn-back').click(CDEX.displayDataRequestScreen);
+    $('#btn-back').click(function(){
+        $('#spinner-preview').show();
+        CDEX.displayDataRequestScreen();
+    });
     $('#btn-submit').click(CDEX.reconcile);
 
     FHIR.oauth2.ready(CDEX.initialize);
