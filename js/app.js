@@ -124,17 +124,14 @@ if (!CDEX) {
                 }
                 if (attachment.contentType === "application/pdf") {
                     if (attachment.url) {
-                        let promiseBundle = new Promise((resolve, reject) => $.ajax({
+                        let promiseBinary = new Promise((resolve, reject) => $.ajax({
                             type: 'GET',
                             url: CDEX.providerEndpoint.url + attachment.url,
-                            success: function(data) {
-                                resolve(data)
-                            },
-                            error: function(error) {
-                                reject(error)
-                            }
+                            success: function(data) {resolve(data)},
+                            error: function(error) {reject(error)}
                         }));
-                        promiseConfig.data = promiseBundle;
+
+                        promiseConfig.data = promiseBinary;
                         promises.push(promiseConfig);
                     } else if (attachment.data) {
                         promiseConfig.data = attachment.data;
@@ -143,13 +140,9 @@ if (!CDEX) {
                 } else if (attachment.contentType === "application/hl7-v3+xml") {
                     let promiseBinary =  new Promise((resolve, reject) => $.ajax({
                         type: 'GET',
-                            url: CDEX.providerEndpoint.url + attachment.url,
-                            success: function(data) {
-                            resolve(btoa(new XMLSerializer().serializeToString(data.documentElement)))
-                            },
-                            error: function(error) {
-                                reject(error)
-                            }
+                        url: CDEX.providerEndpoint.url + attachment.url,
+                        success: function(data) {resolve(btoa(new XMLSerializer().serializeToString(data.documentElement)))},
+                        error: function(error) {reject(error)}
                     }));
                     promiseConfig.data = promiseBinary;
                     promises.push(promiseConfig);
@@ -158,12 +151,8 @@ if (!CDEX) {
                     promiseBundle = new Promise((resolve, reject) => $.ajax({
                         type: 'GET',
                         url: CDEX.providerEndpoint.url + attachment.url,
-                        success: function(data) {
-                            resolve(btoa(JSON.stringify(data)))
-                        },
-                        error: function(error) {
-                            reject(error)
-                        }
+                        success: function(data) {resolve(btoa(JSON.stringify(data)))},
+                        error: function(error) {reject(error)}
                     }));
                     promiseConfig.data = promiseBundle;
                     promises.push(promiseConfig);
@@ -209,10 +198,12 @@ if (!CDEX) {
                         $('#final-list').append(
                             "<tr> <td class='medtd'><h6>" + data.question +
                             "</h6>" + data.answers.id + "</td></tr>");
-                    } else if (checkedResources.includes("query/" + data.answers[0].resource.id)) {
-                        $('#final-list').append(
-                            "<tr> <td class='medtd'><h6>" + data.question +
-                            "</h6>" + data.answers[0].resource.id + "</td></tr>");
+                    } else if (checkedResources.includes("query/" + data.answers)) {
+                        if(checkedResources.includes("query/" + data.answers[0].resource.id)) {
+                            $('#final-list').append(
+                                "<tr> <td class='medtd'><h6>" + data.question +
+                                "</h6>" + data.answers[0].resource.id + "</td></tr>");
+                        }
                     }
                 }
             });
@@ -239,6 +230,7 @@ if (!CDEX) {
     };
 
     CDEX.openCommunicationRequest = (commRequestId) => {
+        CDEX.reviewCommunication = [];
         CDEX.displayDataRequestScreen();
         CDEX.communicationRequests.forEach(function(communicationRequest) {
             if(communicationRequest.id === commRequestId) {
@@ -461,22 +453,24 @@ if (!CDEX) {
         let payload = [];
         let idx = 0;
         CDEX.resources.queries.forEach(function(query){
-            if(checkedResources.includes("query/" + query.answers.id)) {
-                payload[idx] = {
-                    "extension": [
-                        {
-                            "url": "http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string",
-                            "valueString": "VALUESTRING"
+            if(query.answers) {
+                if (checkedResources.includes("query/" + query.answers.id)) {
+                    payload[idx] = {
+                        "extension": [
+                            {
+                                "url": "http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string",
+                                "valueString": "VALUESTRING"
+                            }
+                        ],
+                        "contentAttachment": {
+                            "contentType": "application/fhir+xml",
+                            "data": "DATA"
                         }
-                    ],
-                    "contentAttachment": {
-                        "contentType": "application/fhir+xml",
-                        "data": "DATA"
                     }
+                    payload[idx].extension[0].valueString = query.valueString;
+                    payload[idx].contentAttachment.data = btoa(JSON.stringify(query.answers));
+                    idx++;
                 }
-                payload[idx].extension[0].valueString = query.valueString;
-                payload[idx].contentAttachment.data = btoa(JSON.stringify(query.answers));
-                idx++;
             }
         });
         CDEX.resources.docRef.forEach(function(docRef, index){
@@ -492,7 +486,7 @@ if (!CDEX) {
                         }
                     }],
                     "contentAttachment": {
-                        "contentType": "CONTENTTYPE", //application/pdf
+                        "contentType": "CONTENTTYPE",
                         "data": "DATA",
                         "title": "TITLE"
                     }
