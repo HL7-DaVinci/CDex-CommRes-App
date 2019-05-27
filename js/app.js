@@ -198,7 +198,7 @@ if (!CDEX) {
                         $('#final-list').append(
                             "<tr> <td class='medtd'><h6>" + data.question +
                             "</h6>" + data.answers.id + "</td></tr>");
-                    } else if (checkedResources.includes("query/" + data.answers)) {
+                    } else if (data.answers) {
                         if(checkedResources.includes("query/" + data.answers[0].resource.id)) {
                             $('#final-list').append(
                                 "<tr> <td class='medtd'><h6>" + data.question +
