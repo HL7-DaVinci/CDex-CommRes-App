@@ -251,7 +251,9 @@ if (!CDEX) {
                         $('#selection-list').append(
                             "<tr> <td class='medtd'><b>" + content.contentString + "</b></td></tr>" +
                             "<tr><td><table><thead id='head" + index  +
-                            "'></thead><tbody id='payload" + index + "'></tbody></table></td></tr>");
+                            "'></thead><tbody id='payload" + index + "'>" +
+                            "<tr><td colspan='5' style='text-align:center'><img src='images/spinner.gif'" +
+                            "></td></tr></tbody></table></td></tr>");
                         if(communicationRequest.payload[index].extension) {
                             if (communicationRequest.payload[index].extension[0].valueString) {
                                 let promise;
@@ -267,6 +269,7 @@ if (!CDEX) {
                                 promise = $.ajax(config);
                                 promise.then((results) => {
                                     if (results) {
+                                        $('#payload' + index).html("");
                                         if(results.total == 0){
                                             $('#payload' + index).append("<tr><td>No matching data</td></tr>");
                                         }else {
@@ -317,7 +320,7 @@ if (!CDEX) {
                                         }
                                     }
                                 ).then(function(documentReferences) {
-
+                                    $('#payload' + index).html("");
                                     if(documentReferences.data.entry){
                                         CDEX.reviewCommunication.push(documentReferences);
                                         let d = documentReferences.data.entry;
@@ -353,6 +356,8 @@ if (!CDEX) {
                                     }
                                 });
                             }
+                        }else{
+                            $('#payload' + index).html("");
                         }
                     });
                 }
