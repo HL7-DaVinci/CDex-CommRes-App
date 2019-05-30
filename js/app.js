@@ -515,7 +515,9 @@ if (!CDEX) {
                 CDEX.communicationRequests = communicationRequests;
                 if(communicationRequests.length) {
                 $('#communication-request-selection-list').empty();
-                    CDEX.communicationRequests.forEach(function(commReq, index){
+                    CDEX.communicationRequests
+                      .sort((a,b) => -1*(('' + a.authoredOn).localeCompare(b.authoredOn)))
+                      .forEach(function(commReq, index){
                         if(commReq.sender) {
                             if(commReq.contained){
                                 commReq.contained.forEach(function (containedResource) {

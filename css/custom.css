@@ -28,11 +28,6 @@ td {
     height: 200px;
 }
 
-img {
-    margin-right:10px;
-    width: 66px;
-}
-
 .wine-row {
     display: flex;
     flex-direction: row;
@@ -43,4 +38,10 @@ img {
     display: flex;
     flex-direction: column;
     justify-content: center;
+}
+
+.wine-image {
+    height:80px;
+    width:130px;
+    margin-right:10px;
 }
