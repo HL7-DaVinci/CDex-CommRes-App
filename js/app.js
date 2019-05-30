@@ -9,10 +9,7 @@ if (!CDEX) {
     CDEX.communicationRequest = null;
     CDEX.reviewCommunication = [];
 
-    CDEX.resources = {
-        "queries": [],
-        "docRef": []
-    }
+    CDEX.resources = {};
 
     CDEX.now = () => {
         let date = new Date();
@@ -231,6 +228,10 @@ if (!CDEX) {
 
     CDEX.openCommunicationRequest = (commRequestId) => {
         CDEX.reviewCommunication = [];
+        CDEX.resources = {
+            "queries": [],
+            "docRef": []
+        }
         CDEX.displayDataRequestScreen();
         CDEX.communicationRequests.forEach(function(communicationRequest) {
             if(communicationRequest.id === commRequestId) {
