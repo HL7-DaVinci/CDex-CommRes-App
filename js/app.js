@@ -124,7 +124,7 @@ if (!CDEX) {
                         let promiseBinary = new Promise((resolve, reject) => $.ajax({
                             type: 'GET',
                             url: CDEX.providerEndpoint.url + attachment.url,
-                            success: function(data) {resolve(data)},
+                            success: function(data) {resolve(btoa(unescape(encodeURIComponent(data))))},
                             error: function(error) {reject(error)}
                         }));
 
@@ -158,8 +158,6 @@ if (!CDEX) {
         });
         Promise.all(promises).then(function(values) {
             values.map(element => {
-                // let key = CDEX.resources.docRef[index].category;
-                console.log(element.data);
                 if (typeof element.data === 'object' && element.data !== null) {
                     element.data.then(function (result) {
                         CDEX.resources.docRef[element.index].results[CDEX.resources.docRef[element.index].results.length - 1].data = result;
