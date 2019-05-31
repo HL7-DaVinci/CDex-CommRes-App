@@ -172,7 +172,7 @@ if (!CDEX) {
                     docRefs[element.category].push(CDEX.resources.docRef[element.index]);
                 }
             })
-
+            console.log(docRefs);
             let tr = "";
             Object.keys(docRefs).forEach(function(key) {
                 tr = "<tr> <td class='medtd'><h6>" + key +
@@ -417,7 +417,8 @@ if (!CDEX) {
                 let oSerializer = new XMLSerializer();
                 let sXML = oSerializer.serializeToString(binary);
                 $('#spinner-preview').hide();
-                $('#preview-list').append("<tr><td>" + sXML + "</td></tr>");
+                // $('#preview-list').append("<tr><td>" + sXML + "</td></tr>");
+                $('#preview-list').append("<tr><td><textarea rows='20' cols='80' style='border:none;'>" + sXML + "</textarea></td></tr>")
             });
         }else if(attachment.contentType === "application/fhir+xml"){
             let promiseBundle;
