@@ -172,11 +172,12 @@ if (!CDEX) {
                     docRefs[element.category].push(CDEX.resources.docRef[element.index]);
                 }
             })
-            console.log(docRefs);
+
             let tr = "";
             Object.keys(docRefs).forEach(function(key) {
                 tr = "<tr> <td class='medtd'><h6>" + key +
-                     "</h6></td></tr><tr><td><table><thead><th>Id</th><th>Category</th><th>Author</th><th>Created On</th></thead><tbody>";
+                     "</h6></td></tr><tr><td><table><thead><th>Id</th><th>Category</th>" +
+                     "<th>Author</th><th>Created On</th></thead><tbody>";
                 docRefs[key].forEach(function (data){
                     tr += "<tr><td>" + data.docRefResource.id + "</td><td>" +
                                 data.docRefResource.category[0].text + "</td><td>" +
@@ -229,7 +230,8 @@ if (!CDEX) {
         CDEX.resources = {
             "queries": [],
             "docRef": []
-        }
+        };
+
         CDEX.displayDataRequestScreen();
         CDEX.communicationRequests.forEach(function(communicationRequest) {
             if(communicationRequest.id === commRequestId) {
@@ -279,7 +281,7 @@ if (!CDEX) {
                                                 });
                                                 results.entry.forEach(function (result) {
                                                     if(result.resource.text){
-                                                        $('#payload' + index).append("<tr><td>" + result.resource.text.div
+                                                        $('#payload' + index).append("<tr><td>" + result.resource.type.coding[0].display
                                                             + "</td><td><input type='checkbox' id=" + "query/" +
                                                             result.resource.id + "></td></tr>");
                                                     }else {
@@ -310,7 +312,6 @@ if (!CDEX) {
                                     }
                                 });
                             }else if(communicationRequest.payload[index].extension[0].valueCodeableConcept){
-
                                 CDEX.client.api.fetchAllWithReferences(
                                     {type: "DocumentReference",
                                         query: {
@@ -321,17 +322,18 @@ if (!CDEX) {
                                     $('#payload' + index).html("");
                                     if(documentReferences.data.entry){
                                         CDEX.reviewCommunication.push(documentReferences);
-                                        let d = documentReferences.data.entry;
+                                        let dataEntry = documentReferences.data.entry;
 
-                                        $('#head' + index).append("<th>Id</th><th>Author</th><th>Category</th><th>Created Date</th><th>Preview</th><th>Select</th>");
-                                        d.forEach(function (docRef, docRefIndex) {
+                                        $('#head' + index).append("<th>Id</th><th>Author</th><th>Category</th>" +
+                                            "<th>Created Date</th><th>Preview</th><th>Select</th>");
+                                        dataEntry.forEach(function (docRef, docRefIndex) {
                                             CDEX.resources.docRef.push({
                                                 "id": docRef.resource.id,
                                                 "code": communicationRequest.payload[index].extension[0].valueCodeableConcept.coding[0].code,
                                                 "docRefResource": docRef.resource,
                                                 "category": content.contentString,
                                                 "index": docRefIndex,
-                                                "maxIndex": d.length - 1,
+                                                "maxIndex": dataEntry.length - 1,
                                                 "results": []
                                             });
                                             let idPreview = "previewId" + docRefIndex;
@@ -417,7 +419,6 @@ if (!CDEX) {
                 let oSerializer = new XMLSerializer();
                 let sXML = oSerializer.serializeToString(binary);
                 $('#spinner-preview').hide();
-                // $('#preview-list').append("<tr><td>" + sXML + "</td></tr>");
                 $('#preview-list').append("<tr><td><textarea rows='20' cols='80' style='border:none;'>" + sXML + "</textarea></td></tr>")
             });
         }else if(attachment.contentType === "application/fhir+xml"){
@@ -601,18 +602,14 @@ if (!CDEX) {
             url: CDEX.payerEndpoint.url + CDEX.submitEndpoint + CDEX.operationPayload.id,
             data: JSON.stringify(CDEX.operationPayload),
             contentType: "application/fhir+json"
-            // ,
-            // headers: {"user_key": "zGlPsrIfhgP6"}
         };
 
-        // config['beforeSend'] = (xhr) => {
-        //     xhr.setRequestHeader ("user_key", "");
-        // };
        promise = $.ajax(config);
         console.log(JSON.stringify(CDEX.operationPayload, null, 2));
         promise.then(() => {
             CDEX.displayConfirmScreen();
-        }, () => CDEX.displayErrorScreen("Communication submission failed", "Please check the submit endpoint configuration.  You can close this window now."));
+        }, () => CDEX.displayErrorScreen("Communication submission failed",
+            "Please check the submit endpoint configuration.  You can close this window now."));
     };
 
     $('#btn-start').click(function (){
