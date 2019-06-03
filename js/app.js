@@ -194,7 +194,7 @@ if (!CDEX) {
                         $('#final-list').append(
                             "<tr> <td class='medtd'><h6>" + data.question +
                             "</h6>" + data.answers.id + "</td></tr>");
-                    } else if (data.answers) {
+                    } else if (data.answers[0]) {
                         if(checkedResources.includes("query/" + data.answers[0].resource.id)) {
                             $('#final-list').append(
                                 "<tr> <td class='medtd'><h6>" + data.question +
@@ -460,7 +460,13 @@ if (!CDEX) {
         let idx = 0;
         CDEX.resources.queries.forEach(function(query){
             if(query.answers) {
-                if (checkedResources.includes("query/" + query.answers.id)) {
+                let checkId = "query/";
+                if(query.answers[0]){
+                    checkId += query.answers[0].resource.id;
+                }else{
+                    checkId += query.answers.id;
+                }
+                if (checkedResources.includes((checkId))) {
                     payload[idx] = {
                         "extension": [
                             {
