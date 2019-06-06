@@ -16,12 +16,12 @@ if (!CDEX) {
   CDEX.providerEndpoint = {
       "name": "DaVinci CDex Provider (Open)",
       "type": "open",
-      "url": "https://api-v8-r4.hspconsortium.org/DaVinciCDexProvider/open"};
+      "url": "https://api.logicahealth.org/DaVinciCDexProvider/open"};
 
   CDEX.payerEndpoint = {
       "name": "DaVinci CDex Payer",
       "type": "open",
-      "url": "https://api-v8-r4.hspconsortium.org/DaVinciCDexPayer/open"
+      "url": "https://api.logicahealth.org/DaVinciCDexPayer/open"
   };
 
   CDEX.scenarioDescription = {
