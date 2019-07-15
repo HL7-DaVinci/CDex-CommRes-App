@@ -88,7 +88,7 @@ if (!CDEX) {
 
         if (CDEX.communicationRequest.contained) {
             CDEX.communicationRequest.contained.forEach(function (containedResource) {
-                if ('#' + containedResource.id === CDEX.communicationRequest.sender.reference) {
+                if ('#' + containedResource.id === CDEX.communicationRequest.recipient[0].reference) {
                     CDEX.displayOrganization(containedResource, "card");
                 }
             });
@@ -530,10 +530,10 @@ if (!CDEX) {
                     CDEX.communicationRequests
                       .sort((a,b) => -1*(('' + a.authoredOn).localeCompare(b.authoredOn)))
                       .forEach(function(commReq, index){
-                        if(commReq.sender) {
+                        if(commReq.recipient) {
                             if(commReq.contained){
                                 commReq.contained.forEach(function (containedResource) {
-                                    if('#' + containedResource.id == commReq.sender.reference) {
+                                    if('#' + containedResource.id == commReq.recipient[0].reference) {
                                         if(containedResource.identifier) {
                                             $(".requester" + containedResource.id).html("<div>" +
                                                 containedResource.identifier[0].value + "</div>");
@@ -549,14 +549,14 @@ if (!CDEX) {
                                     description = commReq.text.div;
                                 }
                             }
-                            let senderClass = "";
-                            if(commReq.sender){
-                                let organization = commReq.sender.reference.split("/");
-                                senderClass = organization[organization.length - 1];
+                            let recipientID = "";
+                            if(commReq.recipient){
+                                let organization = commReq.recipient[0].reference.split("/");
+                                recipientID = organization[organization.length - 1];
                             }
                             $('#communication-request-selection-list').append(
                                 "<tr><td class='medtd'>" + commReq.id + "</td><td class='medtd'>" + description +
-                                "</td><td class='medtd requester" + senderClass + "'></td><td class='medtd'>" +
+                                "</td><td class='medtd requester" + recipientID + "'></td><td class='medtd'>" +
                                 CDEX.formatDate(commReq.authoredOn) +
                                 "</td><td class='medtd' id='" + idName + "'></td></tr>");
 
