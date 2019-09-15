@@ -74,7 +74,7 @@ if (!CDEX) {
     };
 
     CDEX.displayDataRequestScreen = () => {
-       CDEX.displayScreen('data-request-screen');
+        CDEX.displayScreen('data-request-screen');
     };
 
     CDEX.displayConfirmScreen = () => {
@@ -176,13 +176,13 @@ if (!CDEX) {
             let tr = "";
             Object.keys(docRefs).forEach(function(key) {
                 tr = "<tr> <td class='medtd'><h6>" + key +
-                     "</h6></td></tr><tr><td><table><thead><th>Id</th><th>Category</th>" +
-                     "<th>Author</th><th>Created On</th></thead><tbody>";
+                    "</h6></td></tr><tr><td><table><thead><th>Id</th><th>Category</th>" +
+                    "<th>Author</th><th>Created On</th></thead><tbody>";
                 docRefs[key].forEach(function (data){
                     tr += "<tr><td>" + data.docRefResource.id + "</td><td>" +
-                                data.docRefResource.category[0].text + "</td><td>" +
-                                data.docRefResource.author[0].display + "</td><td>" +
-                                CDEX.formatDate(data.docRefResource.date) + "</td></tr>";
+                        data.docRefResource.category[0].text + "</td><td>" +
+                        data.docRefResource.author[0].display + "</td><td>" +
+                        CDEX.formatDate(data.docRefResource.date) + "</td></tr>";
                 });
                 tr += "</tbody></table></td></tr>";
                 $('#final-list').append(tr);
@@ -236,7 +236,7 @@ if (!CDEX) {
         CDEX.communicationRequests.forEach(function(communicationRequest) {
             if(communicationRequest.id === commRequestId) {
                 CDEX.communicationRequest = communicationRequest;
-                 CDEX.client.api.fetchAll(
+                CDEX.client.api.fetchAll(
                     {type: "Patient",
                         query: {
                             _id: communicationRequest.subject.reference
@@ -302,10 +302,10 @@ if (!CDEX) {
                                                         "</td><td><input type='checkbox' id=" + "query/" +
                                                         results.id + "></td></tr>");
                                                 }else{
-                                                $('#payload' + index).append("<tr><td><pre>" +
-                                                    JSON.stringify(results, null, '\t')
-                                                    + "</pre></td><td><input type='checkbox' id=" + "query/" +
-                                                    results.id + "></td></tr>");
+                                                    $('#payload' + index).append("<tr><td><pre>" +
+                                                        JSON.stringify(results, null, '\t')
+                                                        + "</pre></td><td><input type='checkbox' id=" + "query/" +
+                                                        results.id + "></td></tr>");
                                                 }
                                             }
                                         }
@@ -387,7 +387,7 @@ if (!CDEX) {
 
                 const byteNumbers = new Array(slice.length);
                 for (let i = 0; i < slice.length; i++) {
-                byteNumbers[i] = slice.charCodeAt(i);
+                    byteNumbers[i] = slice.charCodeAt(i);
                 }
 
                 const byteArray = new Uint8Array(byteNumbers);
@@ -526,52 +526,75 @@ if (!CDEX) {
             ).then(function(communicationRequests) {
                 CDEX.communicationRequests = communicationRequests;
                 if(communicationRequests.length) {
-                $('#communication-request-selection-list').empty();
+                    $('#communication-request-selection-list').empty();
                     CDEX.communicationRequests
-                      .sort((a,b) => -1*(('' + a.authoredOn).localeCompare(b.authoredOn)))
-                      .forEach(function(commReq, index){
-                        if(commReq.recipient) {
-                            if(commReq.contained){
-                                commReq.contained.forEach(function (containedResource) {
-                                    if('#' + containedResource.id == commReq.recipient[0].reference) {
-                                        if(containedResource.identifier) {
-                                            $(".requester" + containedResource.id).html("<div>" +
-                                                containedResource.identifier[0].value + "</div>");
+                        .sort((a,b) => -1*(('' + a.authoredOn).localeCompare(b.authoredOn)))
+                        .forEach(function(commReq, index){
+                            if(commReq.recipient) {
+                                if(commReq.contained){
+                                    commReq.contained.forEach(function (containedResource) {
+                                        if('#' + containedResource.id == commReq.recipient[0].reference) {
+                                            if(containedResource.identifier) {
+                                                $(".requester" + containedResource.id).html("<div>" +
+                                                    containedResource.identifier[0].value + "</div>");
+                                            }
                                         }
+                                    });
+                                }
+                                let idName = "btnCommReq" + index;
+                                let description = "";
+
+                                if (commReq.text) {
+                                    if (commReq.text.div) {
+                                        description = commReq.text.div;
                                     }
+                                }
+
+                                let requester = "";
+                                if (commReq.requester) {
+                                    if (commReq.requester.reference[0] == '#') {
+                                        requester = CDEX.grabRelativeUrlFromContained(commReq, commReq.requester.reference.slice(1))
+                                    } else {
+                                        requester = commReq.requester.reference;
+                                    }
+                                }
+
+                                let sender = "";
+                                if(commReq.sender){
+                                    if (commReq.sender.reference[0] == '#') {
+                                        sender = CDEX.grabRelativeUrlFromContained(commReq, commReq.sender.reference.slice(1))
+                                    } else {
+                                        sender = commReq.sender.reference;
+                                    }
+                                }
+
+                                $('#communication-request-selection-list').append(
+                                    "<tr><td class='medtd'>" + commReq.id + "</td><td class='medtd'>" + description +
+                                    "</td><td class='medtd requester'>" + requester +
+                                    "</td><td class='medtd requester'>" + sender + "</td><td class='medtd'>" +
+                                    CDEX.formatDate(commReq.authoredOn) +
+                                    "</td><td class='medtd' id='" + idName + "'></td></tr>");
+
+                                const idButton = "COMM-" + idName;
+                                $('#' + idName).append("<div><a href='#' id='" + idButton + "'> respond </a></div>");
+                                $('#' + idButton).click(() => {
+                                    CDEX.openCommunicationRequest(commReq.id);
+                                    return false;
                                 });
                             }
-                            let idName = "btnCommReq" + index;
-                            let description = "";
-
-                            if (commReq.text) {
-                                if (commReq.text.div) {
-                                    description = commReq.text.div;
-                                }
-                            }
-                            let recipientID = "";
-                            if(commReq.recipient){
-                                let organization = commReq.recipient[0].reference.split("/");
-                                recipientID = organization[organization.length - 1];
-                            }
-                            $('#communication-request-selection-list').append(
-                                "<tr><td class='medtd'>" + commReq.id + "</td><td class='medtd'>" + description +
-                                "</td><td class='medtd requester" + recipientID + "'></td><td class='medtd'>" +
-                                CDEX.formatDate(commReq.authoredOn) +
-                                "</td><td class='medtd' id='" + idName + "'></td></tr>");
-
-                            const idButton = "COMM-" + idName;
-                            $('#' + idName).append("<div><a href='#' id='" + idButton + "'> respond </a></div>");
-                            $('#' + idButton).click(() => {
-                                CDEX.openCommunicationRequest(commReq.id);
-                                return false;
-                            });
-                        }
-                    });
+                        });
                 }
             });
         } catch (err) {
             CDEX.displayErrorScreen("Failed to initialize communication requests menu", "Please make sure that everything is OK with request configuration");
+        }
+    };
+
+    CDEX.grabRelativeUrlFromContained = (commReq, id) => {
+        for (let i=0; i < commReq.contained.length; i++) {
+            if (commReq.contained[i].id == id) {
+                return commReq.contained[i].resourceType + '/' + commReq.contained[i].id;
+            }
         }
     };
 
@@ -610,7 +633,7 @@ if (!CDEX) {
             contentType: "application/fhir+json"
         };
 
-       promise = $.ajax(config);
+        promise = $.ajax(config);
         console.log(JSON.stringify(CDEX.operationPayload, null, 2));
         promise.then(() => {
             CDEX.displayConfirmScreen();
