@@ -25,14 +25,13 @@ if (!CDEX) {
   };
 
   CDEX.scenarioDescription = {
-      "description" : "Lorem ipsum dolor sit amet, consectetur adipiscing elit,\n" +
-          "            sed do eiusmod tempor incididunt ut labore et dolore magna\n" +
-          "            aliqua. Ut enim ad minim veniam, quis nostrud exercitation\n" +
-          "            ullamco laboris nisi ut aliquip ex ea commodo consequat.\n" +
-          "            Duis aute irure dolor in reprehenderit in voluptate velit\n" +
-          "            esse cillum dolore eu fugiat nulla pariatur. Excepteur sint\n" +
-          "            occaecat cupidatat non proident, sunt in culpa qui officia\n" +
-          "            deserunt mollit anim id est laborum."
+      "description" : "In this scenario, the user works for a provider and wishes to\n" +
+          "            review and respond to information requests from a payer.\n" +
+          "            The user will review the payer requests, preview the data\n" +
+          "            and confirm what data will be included in the response. In\n" +
+          "            this example application, the user reviews the data prior to\n" +
+          "            responding. In a production system, this review could be automated\n" +
+          "            in order to minimize manual review."
   };
 
   CDEX.operationPayload = {
