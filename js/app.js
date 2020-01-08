@@ -177,11 +177,10 @@ if (!CDEX) {
             Object.keys(docRefs).forEach(function(key) {
                 tr = "<tr> <td class='medtd'><h6>" + key +
                     "</h6></td></tr><tr><td><table><thead><th>Id</th><th>Category</th>" +
-                    "<th>Author</th><th>Created On</th></thead><tbody>";
+                    "<th>Created On</th></thead><tbody>";
                 docRefs[key].forEach(function (data){
                     tr += "<tr><td>" + data.docRefResource.id + "</td><td>" +
                         data.docRefResource.category[0].text + "</td><td>" +
-                        data.docRefResource.author[0].display + "</td><td>" +
                         CDEX.formatDate(data.docRefResource.date) + "</td></tr>";
                 });
                 tr += "</tbody></table></td></tr>";
@@ -324,7 +323,7 @@ if (!CDEX) {
                                         CDEX.reviewCommunication.push(documentReferences);
                                         let dataEntry = documentReferences.data.entry;
 
-                                        $('#head' + index).append("<th>Id</th><th>Author</th><th>Category</th>" +
+                                        $('#head' + index).append("<th>Id</th><th>Category</th>" +
                                             "<th>Created Date</th><th>Preview</th><th>Select</th>");
                                         dataEntry.forEach(function (docRef, docRefIndex) {
                                             CDEX.resources.docRef.push({
@@ -338,7 +337,7 @@ if (!CDEX) {
                                             });
                                             let idPreview = "previewId" + docRefIndex;
                                             $('#payload' + index).append("<tr><td>" + docRef.resource.id +
-                                                "</td><td>" + docRef.resource.author[0].display + "</td><td>" +
+                                                "</td><td>" +
                                                 docRef.resource.category[0].text + "</td><td>" +
                                                 CDEX.formatDate(docRef.resource.date) +
                                                 "</td><td id='" + idPreview + "'></td><td><input type='checkbox' id=" +
