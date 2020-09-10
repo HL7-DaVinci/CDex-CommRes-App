@@ -5,7 +5,6 @@ if (!CDEX) {
 
 (function () {
     CDEX.client = null;
-    CDEX.communicationRequests = null;
     CDEX.communicationRequest = null;
     CDEX.reviewCommunication = [];
 
@@ -38,16 +37,6 @@ if (!CDEX) {
 
     CDEX.displayPatient = (pt) => {
         $('#patient-name, #review-name').html(CDEX.getPatientName(pt));
-    };
-
-    CDEX.displayOrganization = (org, screen) => {
-        if(org.identifier.length > 0) {
-            CDEX.payerEndpoint.name = org.identifier[0].value;
-            CDEX.payerEndpoint.url = org.identifier[0].system;
-
-            $('#' + screen).append("<table><tbody><tr><td>" + org.identifier[0].system + "</td><td>" +
-                org.identifier[0].value + "</td></tr></tbody></table>");
-        }
     };
 
     CDEX.displayScreen = (screenID) => {
@@ -85,14 +74,6 @@ if (!CDEX) {
         $("#card").empty();
         $("#final-list").empty();
         CDEX.displayScreen('review-screen');
-
-        if (CDEX.communicationRequest.contained) {
-            CDEX.communicationRequest.contained.forEach(function (containedResource) {
-                if ('#' + containedResource.id === CDEX.communicationRequest.recipient[0].reference) {
-                    CDEX.displayOrganization(containedResource, "card");
-                }
-            });
-        }
 
         let checkboxes = $('#selection-list input[type=checkbox]');
         let checkedResources = [];
@@ -232,136 +213,148 @@ if (!CDEX) {
         };
 
         CDEX.displayDataRequestScreen();
-        CDEX.communicationRequests.forEach(function(communicationRequest) {
-            if(communicationRequest.id === commRequestId) {
-                CDEX.communicationRequest = communicationRequest;
+
+        CDEX.tasks.forEach(function(task) {
+            if(task.id === commRequestId) {
+                CDEX.operationTaskPayload = task;
+            }
+        });
                 CDEX.client.api.fetchAll(
                     {type: "Patient",
                         query: {
-                            _id: communicationRequest.subject.reference
+                            _id: CDEX.operationTaskPayload.for.reference
                         }
                     },
                     [ "Patient.patientReference" ]
                 ).then(function(patients) {
                     CDEX.displayPatient(patients[0]);
                 });
-                if(communicationRequest.payload){
-                    communicationRequest.payload.forEach(function (content, index) {
+                if(CDEX.operationTaskPayload.input){
+                    CDEX.operationTaskPayload.input.forEach(function (content, index) {
+
+                        let description = "";
+                        let code = null;
+                        let query = null;
+
+                        if (content.valueString) {
+                            description = content.valueString;
+                            query = content.valueString;
+                        } else if (content.valueCodeableConcept.coding[0].code) {
+                            description = content.valueCodeableConcept.coding[0].code;
+                            code = content.valueCodeableConcept.coding[0].code;
+                        }                        
+
                         $('#selection-list').append(
-                            "<tr> <td class='medtd'><b>" + content.contentString + "</b></td></tr>" +
+                            "<tr> <td class='medtd'><b>" + description + "</b></td></tr>" +
                             "<tr><td><table><thead id='head" + index  +
                             "'></thead><tbody id='payload" + index + "'>" +
                             "<tr><td colspan='5' style='text-align:center'><img src='images/spinner.gif'" +
                             "></td></tr></tbody></table></td></tr>");
-                        if(communicationRequest.payload[index].extension) {
-                            if (communicationRequest.payload[index].extension[0].valueString) {
-                                let promise;
-                                let config = {
-                                    type: 'GET',
-                                    url: CDEX.providerEndpoint.url + "/" + communicationRequest.payload[index].extension[0].valueString
-                                };
-                                CDEX.resources.queries.push({
-                                    "question": content.contentString,
-                                    "valueString": communicationRequest.payload[index].extension[0].valueString,
-                                    "index": index
-                                });
-                                promise = $.ajax(config);
-                                promise.then((results) => {
-                                    if (results) {
-                                        $('#payload' + index).html("");
-                                        if(results.total == 0){
-                                            $('#payload' + index).append("<tr><td>No matching data</td></tr>");
-                                        }else {
-                                            if(results.entry) {
+
+                        if (query) {
+                            let promise;
+                            let config = {
+                                type: 'GET',
+                                url: CDEX.providerEndpoint.url + "/" + query
+                            };
+                            CDEX.resources.queries.push({
+                                "question": description,
+                                "valueString": query,
+                                "index": index
+                            });
+                            promise = $.ajax(config);
+                            promise.then((results) => {
+                                if (results) {
+                                    $('#payload' + index).html("");
+                                    if(results.total == 0){
+                                        $('#payload' + index).append("<tr><td>No matching data</td></tr>");
+                                    }else {
+                                        if(results.entry) {
+                                            CDEX.resources.queries.forEach(function (r, idx) {
+                                                if(r.index === index){
+                                                    CDEX.resources.queries[idx].answers = results.entry;
+                                                }
+                                            });
+                                            results.entry.forEach(function (result) {
+                                                if(result.resource.text){
+                                                    $('#payload' + index).append("<tr><td>" + result.resource.type.coding[0].display
+                                                        + "</td><td><input type='checkbox' id=" + "query/" +
+                                                        result.resource.id + "></td></tr>");
+                                                }else {
+                                                    $('#payload' + index).append("<tr><td><pre>" +
+                                                        JSON.stringify(result.resource, null, '\t') +
+                                                        "</pre></td><td><input type='checkbox' id=" + "query/" +
+                                                        result.resource.id  + "></td></tr>");
+                                                }
+                                            });
+                                        }else{
+                                            if(results.text){
                                                 CDEX.resources.queries.forEach(function (r, idx) {
                                                     if(r.index === index){
-                                                        CDEX.resources.queries[idx].answers = results.entry;
+                                                        CDEX.resources.queries[idx].answers = results;
                                                     }
                                                 });
-                                                results.entry.forEach(function (result) {
-                                                    if(result.resource.text){
-                                                        $('#payload' + index).append("<tr><td>" + result.resource.type.coding[0].display
-                                                            + "</td><td><input type='checkbox' id=" + "query/" +
-                                                            result.resource.id + "></td></tr>");
-                                                    }else {
-                                                        $('#payload' + index).append("<tr><td><pre>" +
-                                                            JSON.stringify(result.resource, null, '\t') +
-                                                            "</pre></td><td><input type='checkbox' id=" + "query/" +
-                                                            result.resource.id  + "></td></tr>");
-                                                    }
-                                                });
+                                                $('#payload' + index).append("<tr><td>" + results.text.div +
+                                                    "</td><td><input type='checkbox' id=" + "query/" +
+                                                    results.id + "></td></tr>");
                                             }else{
-                                                if(results.text){
-                                                    CDEX.resources.queries.forEach(function (r, idx) {
-                                                        if(r.index === index){
-                                                            CDEX.resources.queries[idx].answers = results;
-                                                        }
-                                                    });
-                                                    $('#payload' + index).append("<tr><td>" + results.text.div +
-                                                        "</td><td><input type='checkbox' id=" + "query/" +
-                                                        results.id + "></td></tr>");
-                                                }else{
-                                                    $('#payload' + index).append("<tr><td><pre>" +
-                                                        JSON.stringify(results, null, '\t')
-                                                        + "</pre></td><td><input type='checkbox' id=" + "query/" +
-                                                        results.id + "></td></tr>");
-                                                }
+                                                $('#payload' + index).append("<tr><td><pre>" +
+                                                    JSON.stringify(results, null, '\t')
+                                                    + "</pre></td><td><input type='checkbox' id=" + "query/" +
+                                                    results.id + "></td></tr>");
                                             }
                                         }
                                     }
-                                });
-                            }else if(communicationRequest.payload[index].extension[0].valueCodeableConcept){
-                                CDEX.client.api.fetchAllWithReferences(
-                                    {type: "DocumentReference",
-                                        query: {
-                                            type: communicationRequest.payload[index].extension[0].valueCodeableConcept.coding[0].code
-                                        }
+                                }
+                            });
+                        }else if(code){
+                            CDEX.client.api.fetchAllWithReferences(
+                                {type: "DocumentReference",
+                                    query: {
+                                        type: code
                                     }
-                                ).then(function(documentReferences) {
-                                    $('#payload' + index).html("");
-                                    if(documentReferences.data.entry){
-                                        CDEX.reviewCommunication.push(documentReferences);
-                                        let dataEntry = documentReferences.data.entry;
+                                }
+                            ).then(function(documentReferences) {
+                                $('#payload' + index).html("");
+                                if(documentReferences.data.entry){
+                                    CDEX.reviewCommunication.push(documentReferences);
+                                    let dataEntry = documentReferences.data.entry;
 
-                                        $('#head' + index).append("<th>Id</th><th>Category</th>" +
-                                            "<th>Created Date</th><th>Preview</th><th>Select</th>");
-                                        dataEntry.forEach(function (docRef, docRefIndex) {
-                                            CDEX.resources.docRef.push({
-                                                "id": docRef.resource.id,
-                                                "code": communicationRequest.payload[index].extension[0].valueCodeableConcept.coding[0].code,
-                                                "docRefResource": docRef.resource,
-                                                "category": content.contentString,
-                                                "index": docRefIndex,
-                                                "maxIndex": dataEntry.length - 1,
-                                                "results": []
-                                            });
-                                            let idPreview = "previewId" + docRefIndex;
-                                            $('#payload' + index).append("<tr><td>" + docRef.resource.id +
-                                                "</td><td>" +
-                                                docRef.resource.category[0].text + "</td><td>" +
-                                                CDEX.formatDate(docRef.resource.date) +
-                                                "</td><td id='" + idPreview + "'></td><td><input type='checkbox' id=" +
-                                                "docRef/" + docRef.resource.id + "></td></tr>");
-
-                                            const idButton = "REQ-" + idPreview;
-                                            $('#' + idPreview).append("<div><a href='#' id='" + idButton + "'> preview </a></div>");
-                                            $('#' + idButton).click(() => {
-                                                CDEX.openPreview(docRef.resource);
-                                                return false;
-                                            });
+                                    $('#head' + index).append("<th>Id</th><th>Category</th>" +
+                                        "<th>Created Date</th><th>Preview</th><th>Select</th>");
+                                    dataEntry.forEach(function (docRef, docRefIndex) {
+                                        CDEX.resources.docRef.push({
+                                            "id": docRef.resource.id,
+                                            "code": code,
+                                            "docRefResource": docRef.resource,
+                                            "category": "", // CONTENT STRING HERE
+                                            "index": docRefIndex,
+                                            "maxIndex": dataEntry.length - 1,
+                                            "results": []
                                         });
-                                    }else{
-                                        $('#payload' + index).append("<tr><td>No " + content.contentString + " available</td></tr>");
-                                    }
-                                });
-                            }
-                        }else{
-                            $('#payload' + index).html("");
+                                        let idPreview = "previewId" + docRefIndex;
+                                        $('#payload' + index).append("<tr><td>" + docRef.resource.id +
+                                            "</td><td>" +
+                                            docRef.resource.category[0].text + "</td><td>" +
+                                            CDEX.formatDate(docRef.resource.date) +
+                                            "</td><td id='" + idPreview + "'></td><td><input type='checkbox' id=" +
+                                            "docRef/" + docRef.resource.id + "></td></tr>");
+
+                                        const idButton = "REQ-" + idPreview;
+                                        $('#' + idPreview).append("<div><a href='#' id='" + idButton + "'> preview </a></div>");
+                                        $('#' + idButton).click(() => {
+                                            CDEX.openPreview(docRef.resource);
+                                            return false;
+                                        });
+                                    });
+                                }else{
+                                    $('#payload' + index).append("<tr><td>No " + content.contentString + " available</td></tr>");
+                                }
+                            });
                         }
                     });
                 }
-            }
-        });
+        ;
     };
 
     CDEX.openPreview = (docRef) => {
@@ -450,11 +443,6 @@ if (!CDEX) {
         }
 
         let timestamp = CDEX.now();
-        let communication = CDEX.operationPayload;
-        communication.authoredOn = timestamp;
-        communication.basedOn[0].reference = "CommunicationRequest/" + CDEX.communicationRequest.id;
-        communication.id = CDEX.getGUID();
-        communication.sent = timestamp;
         let payload = [];
         let idx = 0;
         CDEX.resources.queries.forEach(function(query){
@@ -466,52 +454,54 @@ if (!CDEX) {
                     checkId += query.answers.id;
                 }
                 if (checkedResources.includes((checkId))) {
-                    payload[idx] = {
-                        "extension": [
-                            {
-                                "url": "http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-query-string",
-                                "valueString": "VALUESTRING"
-                            }
-                        ],
-                        "contentAttachment": {
-                            "contentType": "application/fhir+xml",
-                            "data": "DATA"
-                        }
-                    }
-                    payload[idx].extension[0].valueString = query.valueString;
-                    payload[idx].contentAttachment.data = btoa(JSON.stringify(query.answers));
+                    payload[idx] = query.answers;
                     idx++;
                 }
             }
         });
         CDEX.resources.docRef.forEach(function(docRef, index){
             if(checkedResources.includes("docRef/" + CDEX.resources.docRef[index].id)) {
-                payload[idx] = {
-                    "extension": [{
-                        "url": "http://hl7.org/fhir/us/davinci-cdex/StructureDefinition/cdex-payload-clinical-note-type",
-                        "valueCodeableConcept": {
-                            "coding": [{
-                                "system": "http://loinc.org",
-                                "code": "CODE"
-                            }]
-                        }
-                    }],
-                    "contentAttachment": {
-                        "contentType": "CONTENTTYPE",
-                        "data": "DATA",
-                        "title": "TITLE"
-                    }
-                };
-                payload[idx].extension[0].valueCodeableConcept.coding[0].code = CDEX.resources.docRef[index].code;
-                payload[idx].contentAttachment.contentType = CDEX.resources.docRef[index].docRefResource.content[0].attachment.contentType;
-                payload[idx].contentAttachment.title = CDEX.resources.docRef[index].docRefResource.content[0].attachment.title;
-                payload[idx].contentAttachment.data = CDEX.resources.docRef[index].results[0].data;
+                payload[idx] = docRef.docRefResource;
                 idx++;
             }
         });
 
-        communication.payload = payload;
-        CDEX.operationPayload = communication;
+        //communication.payload = payload;
+
+        let task = CDEX.operationTaskPayload;
+        task.status = "completed";
+
+        task.output = [{
+            "type": {
+                "coding": [{
+                    "system": "http://hl7.org/fhir/us/davinci-hrex/CodeSystem/hrex-temp",
+                    "code": "data-value"
+                }]
+            },
+            "valueReference": {
+                "reference": "#results"
+            }
+        }];
+
+        task.contained = [{
+            "resourceType": "Bundle",
+            "id": "results",
+            "type": "searchset",
+            "entry": []
+        }];
+
+        payload.forEach((e) => {
+            task.contained[0].entry.push ({
+                "fullUrl": CDEX.providerEndpoint.url + "/" + e.resourceType + "/" + e.id,
+                "resource": e,
+                "search": {
+                  "mode": "match"
+                }
+              });
+        });
+
+        task.lastModified = timestamp;
+        CDEX.operationTaskPayload = task;
     };
 
     CDEX.loadData = (client) => {
@@ -520,66 +510,54 @@ if (!CDEX) {
         try {
             CDEX.client = client;
             CDEX.client.api.fetchAll(
-                {type: "CommunicationRequest"
-                }
-            ).then(function(communicationRequests) {
-                CDEX.communicationRequests = communicationRequests;
-                if(communicationRequests.length) {
+                {type: "Task"}
+            ).then(function(tasks) {
+                CDEX.tasks = tasks;
+                if(tasks.length) {
                     $('#communication-request-selection-list').empty();
-                    CDEX.communicationRequests
+                    CDEX.tasks
                         .sort((a,b) => -1*(('' + a.authoredOn).localeCompare(b.authoredOn)))
-                        .forEach(function(commReq, index){
-                            if(commReq.recipient) {
-                                if(commReq.contained){
-                                    commReq.contained.forEach(function (containedResource) {
-                                        if('#' + containedResource.id == commReq.recipient[0].reference) {
-                                            if(containedResource.identifier) {
-                                                $(".requester" + containedResource.id).html("<div>" +
-                                                    containedResource.identifier[0].value + "</div>");
-                                            }
-                                        }
-                                    });
-                                }
-                                let idName = "btnCommReq" + index;
-                                let description = "";
+                        .forEach(function(task, index){
+                            let idName = "btnCommReq" + index;
+                            let requester = task.requester.reference;
 
-                                if (commReq.text) {
-                                    if (commReq.text.div) {
-                                        description = commReq.text.div;
-                                    }
-                                }
+                            $('#communication-request-selection-list').append(
+                                "<tr><td class='medtd'>" + task.id + "</td><td class='medtd requester'>" + requester +
+                                "</td><td class='medtd'>" +
+                                CDEX.formatDate(task.authoredOn) +
+                                "</td><td class='medtd' id='" + idName + "'></td></tr>");
 
-                                let requester = "";
-                                if (commReq.requester) {
-                                    if (commReq.requester.reference[0] == '#') {
-                                        requester = CDEX.grabRelativeUrlFromContained(commReq, commReq.requester.reference.slice(1))
-                                    } else {
-                                        requester = commReq.requester.reference;
-                                    }
-                                }
-
-                                let sender = "";
-                                if(commReq.sender){
-                                    if (commReq.sender.reference[0] == '#') {
-                                        sender = CDEX.grabRelativeUrlFromContained(commReq, commReq.sender.reference.slice(1))
-                                    } else {
-                                        sender = commReq.sender.reference;
-                                    }
-                                }
-
-                                $('#communication-request-selection-list').append(
-                                    "<tr><td class='medtd'>" + commReq.id + "</td><td class='medtd'>" + description +
-                                    "</td><td class='medtd requester'>" + requester +
-                                    "</td><td class='medtd requester'>" + sender + "</td><td class='medtd'>" +
-                                    CDEX.formatDate(commReq.authoredOn) +
-                                    "</td><td class='medtd' id='" + idName + "'></td></tr>");
-
+                            if (task.status === "in-progress") {
                                 const idButton = "COMM-" + idName;
-                                $('#' + idName).append("<div><a href='#' id='" + idButton + "'> respond </a></div>");
+                                $('#' + idName).append("<div><a href='#' id='" + idButton + "'> fulfill </a></div>");
                                 $('#' + idButton).click(() => {
-                                    CDEX.openCommunicationRequest(commReq.id);
+                                    CDEX.openCommunicationRequest(task.id);
                                     return false;
                                 });
+                            } else if (task.status === "requested") {
+                                const idButton = "COMM-" + idName;
+                                $('#' + idName).append("<div><a href='#' id='" + idButton + "'> acknowledge </a></div>");
+                                $('#' + idButton).click(() => {
+                                    task.status = "in-progress";
+                                    task.businessStatus = {"text": "Results will be reviewed for release on Monday"};
+
+                                    let config = {
+                                        type: 'PUT',
+                                        url: CDEX.providerEndpoint.url + CDEX.submitTaskEndpoint + task.id,
+                                        data: JSON.stringify(task),
+                                        contentType: "application/fhir+json"
+                                    };
+                                    $.ajax(config);
+
+                                    $('#' + idButton).html(" fulfill ");
+                                    $('#' + idButton).click(() => {
+                                        CDEX.openCommunicationRequest(task.id);
+                                        return false;
+                                    });
+                                    return false;
+                                });
+                            } else {
+                                $('#' + idName).append("<div>completed</div>");
                             }
                         });
                 }
@@ -627,13 +605,13 @@ if (!CDEX) {
         let promise;
         let config = {
             type: 'PUT',
-            url: CDEX.payerEndpoint.url + CDEX.submitEndpoint + CDEX.operationPayload.id,
-            data: JSON.stringify(CDEX.operationPayload),
+            url: CDEX.providerEndpoint.url + CDEX.submitTaskEndpoint + CDEX.operationTaskPayload.id,
+            data: JSON.stringify(CDEX.operationTaskPayload),
             contentType: "application/fhir+json"
         };
 
         promise = $.ajax(config);
-        console.log(JSON.stringify(CDEX.operationPayload, null, 2));
+        console.log(JSON.stringify(CDEX.operationTaskPayload, null, 2));
         promise.then(() => {
             CDEX.displayConfirmScreen();
         }, () => CDEX.displayErrorScreen("Communication submission failed",

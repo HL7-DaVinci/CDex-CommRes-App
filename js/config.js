@@ -11,17 +11,12 @@ if (!CDEX) {
     "scope"    : "user/*.* openid profile"
   };
 
-  CDEX.submitEndpoint = "/Communication/";
+  CDEX.submitTaskEndpoint = "/Task/";
 
   CDEX.providerEndpoint = {
       "name": "DaVinci CDex Provider (Open)",
       "type": "open",
-      "url": "https://api.logicahealth.org/DaVinciCDexProvider/open"};
-
-  CDEX.payerEndpoint = {
-      "name": "DaVinci CDex Payer",
-      "type": "open",
-      "url": "https://api.logicahealth.org/DaVinciCDexPayer/open"
+      "url": "https://api.logicahealth.org/DaVinciCDexProvider/open"
   };
 
   CDEX.scenarioDescription = {
@@ -34,47 +29,17 @@ if (!CDEX) {
           "            in order to minimize manual review."
   };
 
-  CDEX.operationPayload = {
-        "resourceType": "Communication",
-        "id": "COMMUNICATION_ID",
-        "text": {
-            "status": "generated",
-            "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Query response to a Request</div>"
-        },
-        "identifier": [
-            {
-                "system": "http://www.providerco.com/communication",
-                "value": "12345"
-            }
-        ],
-        "basedOn": [
-            {
-                "reference": "CommunicationRequest/ID"
-            }
-        ],
-        "status": "completed",
-        "category": [
-            {
-                "coding": [
-                    {
-                        "system": "http://acme.org/messagetypes",
-                        "code": "SolicitedAttachment"
-                    }
-                ]
-            }
-        ],
-        "subject": {
-            "reference": "Patient/cdex-example-patient"
-        },
-        "sent": "SENTDATE",
-        "recipient": [
-            {
-                "reference": "Organization/cdex-example-payer"
-            }
-        ],
-        "sender": {
-            "reference": "Organization/cdex-example-provider"
-        },
-        "payload": ["PAYLOAD"]
+  CDEX.outcome = {
+    "type": {
+      "coding": [
+        {
+          "system": "http://hl7.org/fhir/us/davinci-hrex/CodeSystem/hrex-temp",
+          "code": "data-value"
+        }
+      ]
+    },
+    "valueReference": {
+      "reference": "REF"  //"#results" or "http://example.org/new-payer/fhir/DocumentReference/727A23K5133"
+    }
   };
 }());
