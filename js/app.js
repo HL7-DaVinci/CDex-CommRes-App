@@ -454,7 +454,7 @@ if (!CDEX) {
                     checkId += query.answers.id;
                 }
                 if (checkedResources.includes((checkId))) {
-                    payload[idx] = query.answers;
+                    payload[idx] = query.answers.map((e) => e.resource);
                     idx++;
                 }
             }
