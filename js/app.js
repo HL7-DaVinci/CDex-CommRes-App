@@ -237,10 +237,10 @@ if (!CDEX) {
                         let query = null;
 
                         if (content.valueString) {
-                            description = content.valueString;
+                            description = "Query: " + content.valueString;
                             query = content.valueString;
                         } else if (content.valueCodeableConcept.coding[0].code) {
-                            description = content.valueCodeableConcept.coding[0].code;
+                            description = "Documents of type LOINC " + content.valueCodeableConcept.coding[0].code;
                             code = content.valueCodeableConcept.coding[0].code;
                         }                        
 
@@ -281,9 +281,9 @@ if (!CDEX) {
                                                         + "</td><td><input type='checkbox' id=" + "query/" +
                                                         result.resource.id + "></td></tr>");
                                                 }else {
-                                                    $('#payload' + index).append("<tr><td><pre>" +
-                                                        JSON.stringify(result.resource, null, '\t') +
-                                                        "</pre></td><td><input type='checkbox' id=" + "query/" +
+                                                    $('#payload' + index).append("<tr><td><div class='div-resource'>" +
+                                                        result.resource.resourceType + ": " + result.resource.code.coding[0].display +
+                                                        "</div></td><td><input type='checkbox' id=" + "query/" +
                                                         result.resource.id  + "></td></tr>");
                                                 }
                                             });
