@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>DaVinci CDex Provider App</title>
+    <title>DaVinci CDex (Provider)</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <script src="lib/fhir-client-0.1.15.js"></script>
     <script src="lib/jquery-3.3.1.js"></script>
@@ -14,27 +14,26 @@
 <body>
 <div class="wine-row">
     <img src="images/response.png" class="wine-image">
-    <div class="wine-text-container"><h1>CDex Communication Fulfillment</h1></div>
+    <div class="wine-text-container"><h1>CDex Data Provider</h1></div>
 </div>
 <div id="intro-screen" class="card alert-info screen">
     <div class="card-body">
-        <h5 class="card-title">Welcome info</h5>
+        <h5 class="card-title">Scenario Description</h5>
         <p class='card-text' id='scenario-intro'></p>
         <a href="#" class="btn btn-primary" id="btn-start">Proceed</a>
     </div>
 </div>
 <div id="communication-request-screen" class="screen">
-    <h3>Communication Requests</h3>
+    <h3>Pending Data Requests</h3>
 
     <div id="communication-request-list">
         <p><div class='dvt'>
         <table class='table'>
             <thead>
             <tr>
-                <th class="medtd">Request ID</th>
-                <th class="medtd">Requester</th>
-                <th class="medtd">Received On</th>
-                <th class="medtd">Action</th>
+                <th class="medtd">Task</th>
+                <th class="medtd">Created</th>
+                <th class="medtd">Actions</th>
             </tr>
             </thead>
             <tbody id='communication-request-selection-list'>

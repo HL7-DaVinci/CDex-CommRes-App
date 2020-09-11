@@ -518,46 +518,62 @@ if (!CDEX) {
                     CDEX.tasks
                         .sort((a,b) => -1*(('' + a.authoredOn).localeCompare(b.authoredOn)))
                         .forEach(function(task, index){
-                            let idName = "btnCommReq" + index;
-                            let requester = task.requester.reference;
-
-                            $('#communication-request-selection-list').append(
-                                "<tr><td class='medtd'>" + task.id + "</td><td class='medtd requester'>" + requester +
-                                "</td><td class='medtd'>" +
-                                CDEX.formatDate(task.authoredOn) +
-                                "</td><td class='medtd' id='" + idName + "'></td></tr>");
-
-                            if (task.status === "in-progress") {
+                            if (task.status === "in-progress" || task.status === "requested") {
+                                const idName = "btnCommReq" + index;
                                 const idButton = "COMM-" + idName;
-                                $('#' + idName).append("<div><a href='#' id='" + idButton + "'> fulfill </a></div>");
-                                $('#' + idButton).click(() => {
-                                    CDEX.openCommunicationRequest(task.id);
-                                    return false;
-                                });
-                            } else if (task.status === "requested") {
-                                const idButton = "COMM-" + idName;
-                                $('#' + idName).append("<div><a href='#' id='" + idButton + "'> acknowledge </a></div>");
-                                $('#' + idButton).click(() => {
-                                    task.status = "in-progress";
-                                    task.businessStatus = {"text": "Results will be reviewed for release on Monday"};
 
-                                    let config = {
-                                        type: 'PUT',
-                                        url: CDEX.providerEndpoint.url + CDEX.submitTaskEndpoint + task.id,
-                                        data: JSON.stringify(task),
-                                        contentType: "application/fhir+json"
-                                    };
-                                    $.ajax(config);
+                                $('#communication-request-selection-list').append(
+                                    "<tr><td class='medtd'><a href='" + CDEX.providerEndpoint.url + "/" + task.resourceType + "/" + task.id +
+                                    "' target='_blank'>" + task.id + "</a></td><td class='medtd'>" +
+                                    CDEX.formatDate(task.authoredOn) +
+                                    "</td><td class='medtd' id='" + idName + "'></td></tr>");
 
-                                    $('#' + idButton).html(" fulfill ");
+                                if (task.status === "in-progress") {
+                                    $('#' + idName).append("<div><a href='#' id='" + idButton + "'> fulfill </a></div>");
                                     $('#' + idButton).click(() => {
                                         CDEX.openCommunicationRequest(task.id);
                                         return false;
                                     });
-                                    return false;
-                                });
-                            } else {
-                                $('#' + idName).append("<div>completed</div>");
+                                } else if (task.status === "requested") {
+                                    $('#' + idName).append("<div><a href='#' id='" + idButton + "'> acknowledge </a></div>");
+                                    $('#' + idButton).click(() => {
+                                        task.status = "in-progress";
+                                        task.businessStatus = {"text": "Results will be reviewed for release"};
+    
+                                        let config = {
+                                            type: 'PUT',
+                                            url: CDEX.providerEndpoint.url + CDEX.submitTaskEndpoint + task.id,
+                                            data: JSON.stringify(task),
+                                            contentType: "application/fhir+json"
+                                        };
+                                        $.ajax(config);
+    
+                                        $('#' + idButton).html(" fulfill ");
+                                        $('#' + idButton + "2").remove();
+                                        $('#' + idButton).click(() => {
+                                            CDEX.openCommunicationRequest(task.id);
+                                            return false;
+                                        });
+                                        return false;
+                                    });
+                                    $('#' + idName).append("<div><a href='#' id='" + idButton + "2'> reject </a></div>");
+                                    $('#' + idButton + '2').click(() => {
+                                        task.status = "rejected";
+                                        task.businessStatus = {"text": "Unable to verify claim"};
+    
+                                        let config = {
+                                            type: 'PUT',
+                                            url: CDEX.providerEndpoint.url + CDEX.submitTaskEndpoint + task.id,
+                                            data: JSON.stringify(task),
+                                            contentType: "application/fhir+json"
+                                        };
+                                        $.ajax(config);
+    
+                                        $('#' + idButton).remove();
+                                        $('#' + idButton + "2").remove();
+                                        return false;
+                                    });
+                                }
                             }
                         });
                 }
