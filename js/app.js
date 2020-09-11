@@ -454,8 +454,10 @@ if (!CDEX) {
                     checkId += query.answers.id;
                 }
                 if (checkedResources.includes((checkId))) {
-                    payload[idx] = query.answers.map((e) => e.resource);
-                    idx++;
+                    query.answers.map((e) => e.resource).forEach((r) => {
+                        payload[idx] = r;
+                        idx++;
+                    });
                 }
             }
         });
@@ -466,39 +468,55 @@ if (!CDEX) {
             }
         });
 
-        //communication.payload = payload;
-
         let task = CDEX.operationTaskPayload;
         task.status = "completed";
 
-        task.output = [{
-            "type": {
-                "coding": [{
-                    "system": "http://hl7.org/fhir/us/davinci-hrex/CodeSystem/hrex-temp",
-                    "code": "data-value"
-                }]
-            },
-            "valueReference": {
-                "reference": "#results"
-            }
-        }];
-
-        task.contained = [{
-            "resourceType": "Bundle",
-            "id": "results",
-            "type": "searchset",
-            "entry": []
-        }];
-
-        payload.forEach((e) => {
-            task.contained[0].entry.push ({
-                "fullUrl": CDEX.providerEndpoint.url + "/" + e.resourceType + "/" + e.id,
-                "resource": e,
-                "search": {
-                  "mode": "match"
+        if ($('#chk-method').is(':checked')) {
+            task.output = [{
+                "type": {
+                    "coding": [{
+                        "system": "http://hl7.org/fhir/us/davinci-hrex/CodeSystem/hrex-temp",
+                        "code": "data-value"
+                    }]
+                },
+                "valueReference": {
+                    "reference": "#results"
                 }
-              });
-        });
+            }];
+    
+            task.contained = [{
+                "resourceType": "Bundle",
+                "id": "results",
+                "type": "searchset",
+                "entry": []
+            }];
+    
+            payload.forEach((e) => {
+                task.contained[0].entry.push ({
+                    "fullUrl": CDEX.providerEndpoint.url + "/" + e.resourceType + "/" + e.id,
+                    "resource": e,
+                    "search": {
+                      "mode": "match"
+                    }
+                  });
+            });
+        } else {
+            task.output = [];
+    
+            payload.forEach((e) => {
+                task.output.push ({
+                    "type": {
+                        "coding": [{
+                            "system": "http://hl7.org/fhir/us/davinci-hrex/CodeSystem/hrex-temp",
+                            "code": "data-value"
+                        }]
+                    },
+                    "valueReference": {
+                        "reference": CDEX.providerEndpoint.url + "/" + e.resourceType + "/" + e.id
+                    }
+                });
+            });
+        }
 
         task.lastModified = timestamp;
         CDEX.operationTaskPayload = task;
@@ -649,6 +667,11 @@ if (!CDEX) {
         CDEX.displayDataRequestScreen();
     });
     $('#btn-submit').click(CDEX.reconcile);
+
+    $('#chk-method').bootstrapToggle({
+        on: 'Yes',
+        off: 'No'
+    });
 
     FHIR.oauth2.ready(CDEX.initialize);
 
