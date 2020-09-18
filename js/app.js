@@ -568,6 +568,7 @@ if (!CDEX) {
     
                                         $('#' + idButton).html(" fulfill ");
                                         $('#' + idButton + "2").remove();
+                                        $('#' + idButton + "3").remove();
                                         $('#' + idButton).click(() => {
                                             CDEX.openCommunicationRequest(task.id);
                                             return false;
@@ -589,6 +590,25 @@ if (!CDEX) {
     
                                         $('#' + idButton).remove();
                                         $('#' + idButton + "2").remove();
+                                        $('#' + idButton + "3").remove();
+                                        return false;
+                                    });
+                                    $('#' + idName).append("<div><a href='#' id='" + idButton + "3'> failure </a></div>");
+                                    $('#' + idButton + '3').click(() => {
+                                        task.status = "failed";
+                                        task.businessStatus = {"text": "Unable to process request"};
+    
+                                        let config = {
+                                            type: 'PUT',
+                                            url: CDEX.providerEndpoint.url + CDEX.submitTaskEndpoint + task.id,
+                                            data: JSON.stringify(task),
+                                            contentType: "application/fhir+json"
+                                        };
+                                        $.ajax(config);
+    
+                                        $('#' + idButton).remove();
+                                        $('#' + idButton + "2").remove();
+                                        $('#' + idButton + "3").remove();
                                         return false;
                                     });
                                 }
