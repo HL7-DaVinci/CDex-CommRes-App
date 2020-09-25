@@ -146,6 +146,7 @@ if (!CDEX) {
                 }else {
                     CDEX.resources.docRef[element.index].results[CDEX.resources.docRef[element.index].results.length - 1].data = element.data;
                 }
+                element.category = "Documents";
                 if((element.category in docRefs)){
                     docRefs[element.category].push(CDEX.resources.docRef[element.index]);
                 }else{
@@ -238,9 +239,11 @@ if (!CDEX) {
 
                         if (content.valueString) {
                             description = "Query: " + content.valueString;
+                            if (content.text) description += " (" + content.text + ")";
                             query = content.valueString;
                         } else if (content.valueCodeableConcept.coding[0].code) {
                             description = "Documents of type LOINC " + content.valueCodeableConcept.coding[0].code;
+                            if (content.valueCodeableConcept.text) description += " (" + content.valueCodeableConcept.text + ")";
                             code = content.valueCodeableConcept.coding[0].code;
                         }                        
 
