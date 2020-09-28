@@ -53,3 +53,17 @@ td {
 #chk-method {
     margin-left: 10px;
 }
+
+.positive {
+    color: green;
+    font-weight: bold;
+}
+
+.negative {
+    color: red;
+    font-weight: bold;
+}
+
+#communication-request-list {
+    display: none;
+}

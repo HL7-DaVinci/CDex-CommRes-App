@@ -26,18 +26,22 @@
 <div id="communication-request-screen" class="screen">
     <h3>Pending Data Requests</h3>
 
+    <div id="spinner"><img src="images/spinner.gif"/></div>
+
     <div id="communication-request-list">
         <p><div class='dvt'>
-        <table class='table'>
+        
+        <table class='table' id=>
             <thead>
             <tr>
                 <th class="medtd">Task</th>
                 <th class="medtd">Created</th>
+                <th class="medtd">Valid</th>
                 <th class="medtd">Actions</th>
             </tr>
             </thead>
             <tbody id='communication-request-selection-list'>
-            <tr><td colspan="5" style="text-align:center"><img src="images/spinner.gif" id="spinner"></td></tr>
+            <tr><td colspan="5" style="text-align:center"></td></tr>
             </tbody>
         </table>
     </div></p>
