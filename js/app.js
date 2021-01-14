@@ -217,6 +217,8 @@ if (!CDEX) {
             "docRef": []
         };
 
+        $('#selection-list').html('');
+
         CDEX.displayDataRequestScreen();
 
         CDEX.tasks.forEach(function(task) {
