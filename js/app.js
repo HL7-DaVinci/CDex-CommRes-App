@@ -193,6 +193,10 @@ if (!CDEX) {
         CDEX.displayScreen('error-screen');
     }
 
+    CDEX.enable = (id) => {
+        $("#"+id).prop("disabled",false);
+    }
+
     CDEX.disable = (id) => {
         $("#"+id).prop("disabled",true);
     };
@@ -681,7 +685,7 @@ if (!CDEX) {
 
         CDEX.disable('btn-submit');
         CDEX.disable('btn-edit');
-        $('#btn-submit').html("<i class='fa fa-circle-o-notch fa-spin'></i> Submit Communication");
+        $('#btn-submit').html("<i class='fa fa-circle-o-notch fa-spin'></i> Release Data");
 
         CDEX.addToPayload();
         CDEX.finalize();
@@ -715,14 +719,28 @@ if (!CDEX) {
         promise = $.ajax(config);
         console.log(JSON.stringify(CDEX.operationTaskPayload, null, 2));
         promise.then(() => {
+            $("#submit-endpoint").html("PUT " + CDEX.providerEndpoint.url + CDEX.submitTaskEndpoint + CDEX.operationTaskPayload.id);
+            $("#text-output").html(JSON.stringify(CDEX.operationTaskPayload, null, '  '));
             CDEX.displayConfirmScreen();
         }, () => CDEX.displayErrorScreen("Communication submission failed",
             "Please check the submit endpoint configuration.  You can close this window now."));
     };
 
+    CDEX.restart = () => {  
+        $('#discharge-selection').show();
+        CDEX.enable('btn-submit');
+        CDEX.enable('btn-edit');
+        $('#btn-submit').html("Release Data");
+        $('#spinner').show();
+        $('#communication-request-list').hide();
+        CDEX.loadData(CDEX.client);
+    }
+
     $('#btn-start').click(function (){
         CDEX.displayCommunicationRequestScreen();
     });
+
+    $('#btn-restart').click(CDEX.restart);
 
     $('#btn-back-comm-list').click(function (){
         $('#selection-list').empty();

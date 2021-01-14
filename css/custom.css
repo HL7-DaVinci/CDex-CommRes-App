@@ -67,3 +67,8 @@ td {
 #communication-request-list {
     display: none;
 }
+
+#text-output  {
+    height: 300px;
+    width: 600px;
+}
