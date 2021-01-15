@@ -540,7 +540,6 @@ if (!CDEX) {
     };
 
     CDEX.loadData = (client) => {
-        CDEX.displayIntroScreen();
         $('#scenario-intro').html(CDEX.scenarioDescription.description);
         try {
             CDEX.client = client;
@@ -707,6 +706,7 @@ if (!CDEX) {
             CDEX.providerEndpoint.accessToken = JSON.parse(sessionStorage.tokenResponse).access_token;
             CDEX.finalize();
         } else {
+            CDEX.displayIntroScreen();
             CDEX.loadData(client);
         }
     };
@@ -738,6 +738,7 @@ if (!CDEX) {
         $('#spinner').show();
         $('#communication-request-list').hide();
         CDEX.loadData(CDEX.client);
+        CDEX.displayCommunicationRequestScreen();
     }
 
     $('#btn-start').click(function (){
