@@ -482,6 +482,7 @@ if (!CDEX) {
         if (payload.length === 0) {
             task.status = "failed";
             task.businessStatus = {"text": "No matching results"};
+            task.statusReason = {"text": "No matching results"};
         } else {
             task.status = "completed";
 
@@ -629,6 +630,7 @@ if (!CDEX) {
                             $('#' + idButton + '2').click(() => {
                                 task.status = "rejected";
                                 task.businessStatus = {"text": "Unable to verify claim"};
+                                task.statusReason = {"text": "Unable to verify claim"};
 
                                 let config = {
                                     type: 'PUT',
@@ -647,6 +649,7 @@ if (!CDEX) {
                             $('#' + idButton + '3').click(() => {
                                 task.status = "failed";
                                 task.businessStatus = {"text": "Unable to process request"};
+                                task.statusReason = {"text": "Unable to process request"};
 
                                 let config = {
                                     type: 'PUT',
