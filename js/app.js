@@ -539,17 +539,20 @@ if (!CDEX) {
         CDEX.operationTaskPayload = task;
     };
 
-    CDEX.loadData = (client) => {
-        $('#scenario-intro').html(CDEX.scenarioDescription.description);
+    CDEX.skipLoadData = false;
+
+    CDEX.loadData = (client, firstRun = true) => {
         try {
             CDEX.client = client;
             CDEX.client.api.fetchAll(
                 {type: "Task"}
             ).then(async function(tasks) {
                 CDEX.tasks = tasks;
-                if(tasks.length) {
-                    $('#communication-request-selection-list').empty();
+                if (firstRun) $('#communication-request-selection-list').empty();
+                let out = "";
+                let buttons = [];
 
+                if(tasks.length) {
                     let index = 0;
                     for (const task of CDEX.tasks.sort((a,b) => -1*(('' + a.authoredOn).localeCompare(b.authoredOn)))) {
 
@@ -584,11 +587,11 @@ if (!CDEX) {
                         const idButton = "COMM-" + idName;
                         const idButtonErr = "ERR-" + idName;
 
-                        $('#communication-request-selection-list').append(
+                        out +=
                             "<tr><td class='medtd'><a href='" + CDEX.providerEndpoint.url + "/" + task.resourceType + "/" + task.id +
                             "' target='_blank'>" + task.id + "</a></td><td class='medtd'>" +
                             CDEX.formatDate(task.authoredOn) +
-                            "</td><td class='medtd'>" + (!error?"<span class='positive'>Yes</span>":"<a href='#' id='" + idButtonErr + "' class='negative'>No</a>") + "</td><td class='medtd' id='" + idName + "'></td></tr>");
+                            "</td><td class='medtd'>" + (!error?"<span class='positive'>Yes</span>":"<a href='#' id='" + idButtonErr + "' class='negative'>No</a>") + "</td><td class='medtd' id='" + idName + "'></td></tr>";
 
                         if (error) {
                             $('#' + idButtonErr).click(() => {
@@ -598,78 +601,107 @@ if (!CDEX) {
                         }
 
                         if (task.status === "in-progress") {
-                            $('#' + idName).append("<div><a href='#' id='" + idButton + "'> fulfill </a></div>");
-                            $('#' + idButton).click(() => {
-                                CDEX.openCommunicationRequest(task.id);
-                                return false;
-                            });
-                        } else if (task.status === "requested") {
-                            $('#' + idName).append("<div><a href='#' id='" + idButton + "'> acknowledge </a></div>");
-                            $('#' + idButton).click(() => {
-                                task.status = "in-progress";
-                                task.businessStatus = {"text": "Results will be reviewed for release"};
-
-                                let config = {
-                                    type: 'PUT',
-                                    url: CDEX.providerEndpoint.url + CDEX.submitTaskEndpoint + task.id,
-                                    data: JSON.stringify(task),
-                                    contentType: "application/fhir+json"
-                                };
-                                $.ajax(config);
-
-                                $('#' + idButton).html(" fulfill ");
-                                $('#' + idButton + "2").remove();
-                                $('#' + idButton + "3").remove();
-                                $('#' + idButton).click(() => {
+                            buttons.push({
+                                idName: idName,
+                                idButton: idButton,
+                                append: "<div><a href='#' id='" + idButton + "'> fulfill </a></div>",
+                                click: () => {
                                     CDEX.openCommunicationRequest(task.id);
                                     return false;
-                                });
-                                return false;
+                                }
                             });
-                            $('#' + idName).append("<div><a href='#' id='" + idButton + "2'> reject </a></div>");
-                            $('#' + idButton + '2').click(() => {
-                                task.status = "rejected";
-                                task.businessStatus = {"text": "Unable to verify claim"};
-                                task.statusReason = {"text": "Unable to verify claim"};
-
-                                let config = {
-                                    type: 'PUT',
-                                    url: CDEX.providerEndpoint.url + CDEX.submitTaskEndpoint + task.id,
-                                    data: JSON.stringify(task),
-                                    contentType: "application/fhir+json"
-                                };
-                                $.ajax(config);
-
-                                $('#' + idButton).remove();
-                                $('#' + idButton + "2").remove();
-                                $('#' + idButton + "3").remove();
-                                return false;
+                        } else if (task.status === "requested") {
+                            buttons.push({
+                                idName: idName,
+                                idButton: idButton,
+                                append: "<div><a href='#' id='" + idButton + "'> acknowledge </a></div>",
+                                click: () => {
+                                    task.status = "in-progress";
+                                    task.businessStatus = {"text": "Results will be reviewed for release"};
+    
+                                    let config = {
+                                        type: 'PUT',
+                                        url: CDEX.providerEndpoint.url + CDEX.submitTaskEndpoint + task.id,
+                                        data: JSON.stringify(task),
+                                        contentType: "application/fhir+json"
+                                    };
+                                    $.ajax(config);
+    
+                                    $('#' + idButton).html(" fulfill ");
+                                    $('#' + idButton + "2").remove();
+                                    $('#' + idButton + "3").remove();
+                                    $('#' + idButton).click(() => {
+                                        CDEX.openCommunicationRequest(task.id);
+                                        return false;
+                                    });
+                                    CDEX.skipLoadData = true;
+                                    return false;
+                                }
                             });
-                            $('#' + idName).append("<div><a href='#' id='" + idButton + "3'> failure </a></div>");
-                            $('#' + idButton + '3').click(() => {
-                                task.status = "failed";
-                                task.businessStatus = {"text": "Unable to process request"};
-                                task.statusReason = {"text": "Unable to process request"};
-
-                                let config = {
-                                    type: 'PUT',
-                                    url: CDEX.providerEndpoint.url + CDEX.submitTaskEndpoint + task.id,
-                                    data: JSON.stringify(task),
-                                    contentType: "application/fhir+json"
-                                };
-                                $.ajax(config);
-
-                                $('#' + idButton).remove();
-                                $('#' + idButton + "2").remove();
-                                $('#' + idButton + "3").remove();
-                                return false;
+                            buttons.push({
+                                idName: idName,
+                                idButton: idButton + '2',
+                                append: "<div><a href='#' id='" + idButton + "2'> reject </a></div>",
+                                click: () => {
+                                    task.status = "rejected";
+                                    task.businessStatus = {"text": "Unable to verify claim"};
+                                    task.statusReason = {"text": "Unable to verify claim"};
+    
+                                    let config = {
+                                        type: 'PUT',
+                                        url: CDEX.providerEndpoint.url + CDEX.submitTaskEndpoint + task.id,
+                                        data: JSON.stringify(task),
+                                        contentType: "application/fhir+json"
+                                    };
+                                    $.ajax(config);
+    
+                                    $('#' + idButton).remove();
+                                    $('#' + idButton + "2").remove();
+                                    $('#' + idButton + "3").remove();
+                                    CDEX.skipLoadData = true;
+                                    return false;
+                                }
+                            });
+                            buttons.push({
+                                idName: idName,
+                                idButton: idButton + '3',
+                                append: "<div><a href='#' id='" + idButton + "3'> failure </a></div>",
+                                click: () => {
+                                    task.status = "failed";
+                                    task.businessStatus = {"text": "Unable to process request"};
+                                    task.statusReason = {"text": "Unable to process request"};
+    
+                                    let config = {
+                                        type: 'PUT',
+                                        url: CDEX.providerEndpoint.url + CDEX.submitTaskEndpoint + task.id,
+                                        data: JSON.stringify(task),
+                                        contentType: "application/fhir+json"
+                                    };
+                                    $.ajax(config);
+    
+                                    $('#' + idButton).remove();
+                                    $('#' + idButton + "2").remove();
+                                    $('#' + idButton + "3").remove();
+                                    CDEX.skipLoadData = true;
+                                    return false;
+                                }
                             });
                         }
                         index++;
                     }
+                }
+                if (!CDEX.skipLoadData || firstRun) {
+                    $('#communication-request-selection-list').html(out);
+                    buttons.forEach((b) => {
+                        $('#' + b.idName).append(b.append);
+                        $('#' + b.idButton).click(b.click);
+                    });
                     $('#spinner').hide();
                     $('#communication-request-list').show();
+                } else {
+                    CDEX.skipLoadData = false;
                 }
+                CDEX.timout = setTimeout(() => CDEX.loadData(CDEX.client, false), 3000);
             });
         } catch (err) {
             CDEX.displayErrorScreen("Failed to initialize communication requests menu", "Please make sure that everything is OK with request configuration");
@@ -706,6 +738,7 @@ if (!CDEX) {
             CDEX.providerEndpoint.accessToken = JSON.parse(sessionStorage.tokenResponse).access_token;
             CDEX.finalize();
         } else {
+            $('#scenario-intro').html(CDEX.scenarioDescription.description);
             CDEX.displayIntroScreen();
             CDEX.loadData(client);
         }
@@ -730,7 +763,9 @@ if (!CDEX) {
             "Please check the submit endpoint configuration.  You can close this window now."));
     };
 
-    CDEX.restart = () => {  
+    CDEX.restart = () => {
+        clearTimeout(CDEX.timout);
+        CDEX.skipLoadData = true;
         $('#discharge-selection').show();
         CDEX.enable('btn-submit');
         CDEX.enable('btn-edit');
