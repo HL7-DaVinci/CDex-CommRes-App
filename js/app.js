@@ -565,7 +565,7 @@ if (!CDEX) {
                         //validate task
                         let conf = {
                             type: 'POST',
-                            url: CDEX.providerEndpoint.url + "/" + task.resourceType + "/$validate",
+                            url: CDEX.providerEndpoint.url + "/" + task.resourceType + "/$validate?profile=http://hl7.org/fhir/us/davinci-hrex/StructureDefinition/hrex-task-data-request",
                             data: JSON.stringify(task),
                             contentType: "application/fhir+json",
                             accept: "application/fhir+json"
