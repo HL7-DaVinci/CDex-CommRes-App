@@ -485,6 +485,7 @@ if (!CDEX) {
             task.statusReason = {"text": "No matching results"};
         } else {
             task.status = "completed";
+            delete task.businessStatus;
 
             if ($('#chk-method').is(':checked')) {
                 task.output = [{
