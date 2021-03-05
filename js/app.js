@@ -540,14 +540,42 @@ if (!CDEX) {
     };
 
     CDEX.skipLoadData = false;
+    CDEX.subscriptions = [];
+
+    CDEX.getSubscription = (task) => {
+        const taskID = task.id;
+        return CDEX.subscriptions.find((s) => {
+            const ch = s.channel;
+            return s.criteria.startsWith('Task') && s.criteria.endsWith(taskID) && ch.type === "rest-hook" && ch.endpoint && ch.payload;
+        });
+    };
+
+    CDEX.notify = (task) => {
+        const subscription = CDEX.getSubscription(task);
+        if (subscription) {
+            let config = {
+                type: 'PUT',
+                url: subscription.channel.endpoint + "/Task/" + task.id,
+                data: JSON.stringify(task),
+                contentType: "application/fhir+json"
+            };
+            $.ajax(config);
+        }
+    };
 
     CDEX.loadData = (client, firstRun = true) => {
         try {
             CDEX.client = client;
-            CDEX.client.api.fetchAll(
+            Promise.all([CDEX.client.api.fetchAll(
                 {type: "Task"}
-            ).then(async function(tasks) {
+            ),CDEX.client.api.fetchAll(
+                {type: "Subscription"}
+            )])
+            .then(async function(res) {
+                let tasks = res[0];
+                let subscriptions = res[1];
                 CDEX.tasks = tasks;
+                CDEX.subscriptions = subscriptions;
                 if (firstRun) $('#communication-request-selection-list').empty();
                 let out = "";
                 let buttons = [];
@@ -586,12 +614,13 @@ if (!CDEX) {
                         const idName = "btnCommReq" + index;
                         const idButton = "COMM-" + idName;
                         const idButtonErr = "ERR-" + idName;
+                        const subscription = CDEX.getSubscription(task);
 
                         out +=
                             "<tr><td class='medtd'><a href='" + CDEX.providerEndpoint.url + "/" + task.resourceType + "/" + task.id +
                             "' target='_blank'>" + task.id + "</a></td><td class='medtd'>" +
                             CDEX.formatDate(task.authoredOn) +
-                            "</td><td class='medtd'>" + (!error?"<span class='positive'>Yes</span>":"<a href='#' id='" + idButtonErr + "' class='negative'>No</a>") + "</td><td class='medtd' id='" + idName + "'></td></tr>";
+                            "</td><td class='medtd'>" + (!error?"<span class='positive'>Yes</span>":"<a href='#' id='" + idButtonErr + "' class='negative'>No</a>") + "</td><td class='medtd'>" + (subscription?"Yes":"No") + "</td><td class='medtd' id='" + idName + "'></td></tr>";
 
                         if (error) {
                             $('#' + idButtonErr).click(() => {
@@ -626,6 +655,7 @@ if (!CDEX) {
                                         contentType: "application/fhir+json"
                                     };
                                     $.ajax(config);
+                                    CDEX.notify(task);
     
                                     $('#' + idButton).html(" fulfill ");
                                     $('#' + idButton + "2").remove();
@@ -654,6 +684,7 @@ if (!CDEX) {
                                         contentType: "application/fhir+json"
                                     };
                                     $.ajax(config);
+                                    CDEX.notify(task);
     
                                     $('#' + idButton).remove();
                                     $('#' + idButton + "2").remove();
@@ -678,6 +709,7 @@ if (!CDEX) {
                                         contentType: "application/fhir+json"
                                     };
                                     $.ajax(config);
+                                    CDEX.notify(task);
     
                                     $('#' + idButton).remove();
                                     $('#' + idButton + "2").remove();
@@ -754,10 +786,18 @@ if (!CDEX) {
         };
 
         promise = $.ajax(config);
+        CDEX.notify(CDEX.operationTaskPayload);
         console.log(JSON.stringify(CDEX.operationTaskPayload, null, 2));
         promise.then(() => {
             $("#submit-endpoint").html("PUT " + CDEX.providerEndpoint.url + CDEX.submitTaskEndpoint + CDEX.operationTaskPayload.id);
             $("#text-output").html(JSON.stringify(CDEX.operationTaskPayload, null, '  '));
+            const subscription = CDEX.getSubscription(CDEX.operationTaskPayload);
+            if (subscription) {
+                $("#subscription-endpoint").show();
+                $("#subscription-endpoint").html("Subscription notified at " + subscription.channel.endpoint);
+            } else {
+                $("#subscription-endpoint").hide();
+            }
             CDEX.displayConfirmScreen();
         }, () => CDEX.displayErrorScreen("Communication submission failed",
             "Please check the submit endpoint configuration.  You can close this window now."));

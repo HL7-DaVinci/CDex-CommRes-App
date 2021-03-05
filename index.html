@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <title>DaVinci CDex (Provider)</title>
+    <link rel="icon" type="image/png" href="images/favicon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <script src="lib/fhir-client-0.1.15.js"></script>
     <script src="lib/jquery-3.3.1.js"></script>
@@ -37,6 +38,7 @@
                 <th class="medtd">Task</th>
                 <th class="medtd">Created</th>
                 <th class="medtd">Valid</th>
+                <th class="medtd">Subscription</th>
                 <th class="medtd">Actions</th>
             </tr>
             </thead>
@@ -90,6 +92,7 @@
         <p class="card-text">Data written to Task resource.</p>
         <p class="card-text" id="submit-endpoint"></p>
         <p class="card-text"><textarea id="text-output"></textarea></p>
+        <p class="card-text" id="subscription-endpoint"></p>
         <p class="card-text"><a href="#" class="btn btn-primary" id="btn-restart">OK</a></p>
     </div>
 </div>
