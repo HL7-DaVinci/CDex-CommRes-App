@@ -7,7 +7,7 @@ if (!CDEX) {
 (function () {
 
   CDEX.clientSettings = {
-    "client_id": "3d70106c-a699-42c8-b9cc-e2400697a290",
+    "client_id": "3fcec06b-9b9e-48a8-aa38-d6d51f07007b",
     "scope"    : "launch user/*.* openid profile"
   };
 
